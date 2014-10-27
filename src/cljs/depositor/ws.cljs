@@ -1,40 +1,43 @@
 (ns depositor.ws
-  (:require-macros [cljs.core.async.macros :refer [go]])
-  (:require [cljs.core.async :refer [<! put! close! chan]]
+  (:require-macros [cljs.core.async.macros :refer (go go-loop)])
+  (:require [cljs.core.async :refer (<! >! put! chan)]
+            [taoensso.sente  :as sente :refer (cb-success?)]
+            [om.core :as om]
             [cognitect.transit :as t]))
 
-(def socket (atom nil))
+(enable-console-print!)
 
-(defn create []
-  (let [incoming (chan)
-        outgoing (chan)]
-    {:host "localhost"
-     :port 3000
-     :path "/socket"
-     :incoming incoming
-     :outgoing outgoing}))
+(declare start-event-sender!)
 
-(defn send-data [data]
-  (put! (:outgoing @socket) data)) ;(t/write data)))
+(defmulti handle-socket-event :id)
 
-(defn on-data [data]
-  (.log js.console data)); (t/read data)))
+(defmethod handle-socket-event :chsk/state 
+  [{:as msg :keys [?data]}]
+  (when (:first-open? ?data)
+    (start-event-sender!)))
 
-(defn start [ws]
-  (let [url (str "ws://" (:host ws) ":" (:port ws) (:path ws))
-        web-socket (js/WebSocket. url)]
-    (.onmessage socket (fn [e] (put! (:incoming ws) (get e "data"))))
-    (go (loop []
-          (on-data (<! (:incoming ws)))
-          (recur)))
-    (go (loop []
-          (.send socket (<! (:outgoing ws)))
-          (recur)))
-    (reset! socket (assoc ws :socket web-socket))))
+(let [{:keys [chsk ch-recv send-fn state]} 
+        (sente/make-channel-socket! "/socket" {:type :auto})]
+  (def chsk       chsk)
+  (def ch-chsk    ch-recv)
+  (def chsk-send! send-fn)
+  (def chsk-state state)
+  (sente/start-chsk-router! ch-recv handle-socket-event))
 
-(defn stop []
-  (when @socket
-    (close! (:incoming @socket))
-    (close! (:outgoing @socket))
-    (reset! socket nil)))
-    
+(def send-ch (chan 100))
+
+(defn send! [event reply-fn]
+  (put! send-ch {:event event :reply-fn reply-fn}))
+
+(defn send-and-update! [event app-state k]
+  (send! event
+         (fn [reply]
+           (when (cb-success? reply)
+             (om/update! app-state [k] reply)))))
+
+(defn start-event-sender! []
+  (go-loop [{:keys [event reply-fn]} (<! send-ch)]
+    (println event)
+    (chsk-send! event 5000 reply-fn)
+    (recur (<! send-ch))))
+

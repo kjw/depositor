@@ -1,29 +1,40 @@
 (ns depositor.server
-  "Serve the index page and handle web socket connections."
+  "Serve pages and handle web socket connections."
   (:require [depositor.page :refer [page]]
-            [compojure.core :refer [GET defroutes]]
+            [compojure.core :refer [GET POST defroutes routes context]]
             [compojure.route :refer [resources]]
+            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [compojure.handler :refer [site]]
-            [org.httpkit.server :refer [run-server with-channel 
-                                        on-close on-receive send!]]
-            [environ.core :refer [env]]))
+            [org.httpkit.server :refer [run-server]]
+            [environ.core :refer [env]]
+            [cemerick.friend :refer [wrap-authorize authenticate]]
+            [cemerick.friend.workflows :refer [interactive-form]]
+            [depositor.auth :refer [crossref-credentials authorization-routes]]
+            [depositor.stats :refer [stats-routes]]
+            [depositor.deposit :refer [deposit-routes]]
+            [depositor.event :refer [socket-routes] :as event]
+            [depositor.permission :refer [permission-routes]]))
 
 (def server (atom nil))
 
-(def clients (atom {}))
-      
-(defn web-socket [req]
-  (with-channel req channel
-    (on-close channel (fn [status] (println "closed")))
-    (on-receive channel (fn [data] (send! channel data)))))
-
-(defroutes all-routes
-  (resources "/")
-  (GET "/socket" [] web-socket)
+(defroutes base-routes 
   (GET "/" [] (page)))
 
+(def all-routes
+  (-> (routes
+       (context "/socket" [] (wrap-authorize socket-routes #{:user}))
+       (context "/deposits" [] (wrap-authorize deposit-routes #{:user}))
+       (context "/permissions" [] (wrap-authorize permission-routes #{:user}))
+       (context "/statistics" [] (wrap-authorize stats-routes #{:user}))
+       authorization-routes
+       base-routes)
+      (authenticate {:credential-fn crossref-credentials
+                     :workflows [(interactive-form :login-uri "/login")]})
+      (wrap-defaults site-defaults)))
+
 (defn start []
-  (reset! server (run-server (site #'all-routes)
+  (event/start)
+  (reset! server (run-server #'all-routes
                              {:port (env :server-port)
                               :thread (env :server-threads)
                               :queue-size (env :server-queue-size)})))

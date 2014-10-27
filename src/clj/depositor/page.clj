@@ -31,10 +31,11 @@
       hc/parse
       hc/as-hickory))
 
-(defn page []
+(defn page [& {:keys [content] :or {content "<div></div>"}}]
   (->> (original-page)
        hz/hickory-zip
        (hs/select-next-loc (hs/tag :body))
+       (#(zip/append-child % (-> content hc/parse-fragment first hc/as-hickory)))
        (#(zip/append-child % (main-js-script)))
        (#(zip/append-child % (repl-js-script)))
        zip/root
