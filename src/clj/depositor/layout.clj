@@ -33,11 +33,16 @@
   (filter (partial instance? String) (identity-roles req)))
 
 (defn- header-links [req]
-  [:ul.nav.navbar-nav])
+  [:div
+   [:div#upload]
+   [:ul.nav.navbar-nav]])
 
 (defn- header-account-info [req]
   [:ul.nav.navbar-nav.navbar-right
-   [:li [:a {:href "#"} [:span.glyphicon.glyphicon-upload] " Upload"]]
+   [:li [:a {:href "#"
+             :data-target "#upload-modal"
+             :data-toggle "modal"}
+         [:span.glyphicon.glyphicon-upload] " Upload"]]
    [:li [:a {:href "#"} [:span.glyphicon.glyphicon-list] " Notifications"]]
    [:li.dropdown
     [:a.dropdown-toggle 

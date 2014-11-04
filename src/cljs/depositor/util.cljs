@@ -10,6 +10,9 @@
                      :style {:width "4em" 
                              :height "4em"}}
                     (dom/div {:class "spinner"}))))
+
+(defn icon [k]
+  (dom/span {:class (str "glyphicon glyphicon-" (name k))}))
  
 (defn paginate [total rows offset]
   (let [current-page (if (zero? offset)
@@ -21,14 +24,14 @@
       {:class "col-md-8"}
       (dom/ul
        {:class "pagination"}
-       (dom/li (dom/a {:href "#"} "&laquo;"))
+       (dom/li (dom/a {:href "#"} (icon :chevron-left)))
        (for [pg (map inc (range (/ total rows)))]
          (if (= pg current-page)
            (dom/li {:class "active"} (dom/a {:href "#"} pg))
            (dom/li (dom/a {:href "#"} pg))))
-       (dom/li (dom/a {:href "#"} "&raquo;"))))
+       (dom/li (dom/a {:href "#"} (icon :chevron-right)))))
      (dom/div
-      {:class "col-md-4 text-right-align"}
+      {:class "col-md-4 text-align-right"}
       (dom/span
        {:class "small"}
        (str "Page " current-page " of " total " results"))))))
@@ -40,6 +43,56 @@
    (:total-results msg)
    (:items-per-page msg)
    (get-in msg [:query :start-index])))
+
+(defn tabs [ts]
+  (dom/div
+   (dom/ul
+    {:class "nav nav-tabs" :role "tablist"}
+    (for [t ts]
+      (dom/li
+       {:class (if (:active t) "active" "")
+        :role "presentation"}
+       (dom/a {:id (str (name (:name t)) "-tab")
+               :data-toggle "tab"
+               :role "tab"
+               :href (str "#" (name (:name t)))}
+              (:label t)))))
+   (dom/div
+    {:class "tab-content"}
+    (for [t ts]
+      (dom/div
+       {:id (str (name (:name t)))
+        :class (if (:active t)
+                 "tab-pane fade in active"
+                 "tab-pane fade")
+        :role "tabpanel"}
+       (:content t))))))
+
+(defn in-panel [content & {:keys [title]}]
+  (dom/div
+   {:class "panel panel-default"}
+   (dom/div
+    {:class "panel-body"}
+    (when title
+      (dom/div {:class "panel-title"} title))
+    content)))
+
+(defn radios [name rs]
+  (dom/div
+   {:class "btn-group"
+    :data-toggle "buttons"}
+   (for [r rs]
+     (dom/label
+      {:class (if (:active r)
+                "btn btn-primary btn-lg active"
+                "btn btn-primary btn-lg")}
+      (dom/input
+       {:type "radio"
+        :name (name (:name r))
+        :id (name (:name r))
+        :on-change (:change-fn r)
+        :autocomplete "off"}
+       (:label r))))))
 
 (defn format-percent [n]
   (str (->> n (* 100) (gs/format "%1.1f")) "%"))
