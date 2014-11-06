@@ -25,19 +25,14 @@
 
 (defn put-deposit [{:keys [username password]}
                    {:keys [url filename content-type]}]
-  (let [{:keys [headers status]}
+  (let [{:keys [headers status body error]}
         (-> "https://api.crossref.org/v1/deposits"
             (hc/post {:basic-auth [username password]
                       :query-params {:url url
                                      :filename filename}
                       :headers {"Content-Type" content-type}})
             deref)]
-    (-> (str "https://api.crossref.org" (get headers :location))
-        (hc/get {:basic-auth [username password]})
-        deref
-        :body
-        (json/read-str :key-fn keyword)
-        :message)))
+    (-> body (json/read-str :key-fn keyword) :message)))
 
 (defn deposits-page [t]
   [:div
@@ -64,7 +59,6 @@
 
 (defmethod handle-socket-event ::deposit-link
   [{:keys [ring-req ?reply-fn ?data]}]
-  (prn ?data)
   (-> ring-req identity-credentials (put-deposit ?data) ?reply-fn))
     
 (defroutes deposit-routes

@@ -14,10 +14,8 @@
 (defn icon [k]
   (dom/span {:class (str "glyphicon glyphicon-" (name k))}))
  
-(defn paginate [total rows offset]
-  (let [current-page (if (zero? offset)
-                       1
-                       (inc (/ total offset)))]
+(defn paginate [total rows offset & {:keys [change-fn]}]
+  (let [current-page (inc (* (/ total rows) offset))]
     (dom/div
      {:class "row"}
      (dom/div
@@ -28,7 +26,10 @@
        (for [pg (map inc (range (/ total rows)))]
          (if (= pg current-page)
            (dom/li {:class "active"} (dom/a {:href "#"} pg))
-           (dom/li (dom/a {:href "#"} pg))))
+           (dom/li
+            (if change-fn
+              (dom/a {:href "#" :on-click #(change-fn pg)} pg)
+              (dom/a {:href "#"} pg)))))
        (dom/li (dom/a {:href "#"} (icon :chevron-right)))))
      (dom/div
       {:class "col-md-4 text-align-right"}
@@ -38,11 +39,12 @@
 
 (defn paginate-list
   "Paginate a REST API list message"
-  [msg]
+  [msg change-fn]
   (paginate
    (:total-results msg)
    (:items-per-page msg)
-   (get-in msg [:query :start-index])))
+   (get-in msg [:query :start-index])
+   :change-fn change-fn))
 
 (defn tabs [ts]
   (dom/div

@@ -84,6 +84,12 @@
    (for [doi (:dois deposit)]
      (dom/tr (dom/td doi)))))
 
+(defn deposit-citations [deposit]
+  (dom/table
+   {:class "table"}
+   (for [citation (:citations deposit)]
+     (dom/tr (dom/td citation)))))
+
 (defn deposit-submission [deposit]
   (dom/table
    {:class "table"}
@@ -116,6 +122,9 @@
        :label "DOIs in Deposit"
        :content (deposit-dois deposit)
        :active true}
+      {:name :citations
+       :label "Extracted Citations"
+       :content (deposit-citations deposit)}
       {:name :submission
        :label "Submission Log"
        :content (deposit-submission deposit)}]))))
@@ -132,6 +141,12 @@
                                         (deposit-created deposit))
                                (dom/div {:class "col-md-2"}
                                         (deposit-doi-count deposit))))))
+
+(defn change-deposits-page [app]
+  (fn [page-number]
+    (send-and-update! [::deposits {:rows 10 :offset (* 10 (dec page-number))}]
+                      app
+                      :deposits)))
 
 (defcomponent deposit-list [app owner]
   (init-state [_] {:open-chan (chan)})
@@ -156,7 +171,8 @@
                             deposit-item
                             (get-in app [:deposits :items])
                             {:init-state {:open-chan open-chan}}))
-                   (util/paginate-list (:deposits app)))
+                   (util/paginate-list (:deposits app)
+                                       (change-deposits-page app)))
 
                  :else
                  (util/loader))))
@@ -175,6 +191,7 @@
      #(success-fn %))))
 
 (defn add-local-deposit [app deposit]
+  (println deposit)
   (om/transact! app :deposits #(conj % deposit)))
 
 (defn pdf-upload [app]
