@@ -3,7 +3,7 @@
   (:require [om-tools.dom :as dom :include-macros true]
             [om-tools.core :refer-macros [defcomponent]]
             [om.core :as om]
-            [cljs.core.async :refer (<! >! put! chan)]
+            [cljs.core.async :refer (<! >! put! chan sliding-buffer close!)]
             [depositor.util :as util]
             [depositor.ws :as ws :refer [send-and-update!]]))
 
@@ -37,13 +37,10 @@
    "application/vnd.crossref.deposit+xml"
    "Full Deposit XML"})
 
-
 (def page-state
   (atom {:deposits nil
-         :deposit {}}))
-
-;; (defcomponent deposit [deposit owner]
-;;   ())
+         :deposit {}
+         :citations {}}))
 
 ;; status - completed failed submitted
 ;; time of submission
@@ -53,6 +50,73 @@
 ;; (submission history)
 ;; (submission errors)
 ;; (dois)
+
+(defn editing-citation-text [citations]
+  (get-in citations [:list (:editing citations) :text]))
+
+(defn change-citation-text [citations s query-chan]
+  (om/update! citations
+              [:list (:editing @citations) :text]
+              s)
+  (put! query-chan s))
+
+(defn match-details [match]
+  (dom/div
+   (dom/h6 (-> match :title first))
+   (dom/p
+    {:class "small"}
+    (str (-> match (get-in [:issued :date-parts]) ffirst)
+         " - "
+         (-> match :container-title first)))
+   (dom/p
+    (dom/a
+     {:href (str "http://dx.doi.org/" (:DOI match))}
+     (:DOI match)))))
+
+(defn citation-view [citations citation-chan query-chan]
+  (dom/div
+   {:class "fadein"}
+   (dom/form
+    {:role "form"}
+    (dom/div
+     {:class "form-group"}
+     (dom/label {:for "citation-text"} "Citation text")
+     (dom/textarea {:class "form-control lead"
+                    :rows "3"
+                    :value (editing-citation-text citations)
+                    :on-change #(change-citation-text citations
+                                                      (.-value (.-target %))
+                                                      query-chan)}))
+    (dom/div
+     {:class "form-group"}
+     (dom/label "Potential DOI matches")
+     (dom/table
+      {:class "table"}
+      (dom/tbody
+       (for [result (:results citations)]
+         (dom/tr (dom/td (match-details result)))))))
+    (dom/p
+     (dom/div {:class "pull-right"}
+              (dom/div
+               (dom/button {:class "btn btn-default"
+                            :on-click #(put! citation-chan {})}
+                           "Discard changes")
+               (dom/button {:class "btn btn-success"} "Save")))))))
+
+(defcomponent citation [citations owner]
+  (init-state [_] {:query-chan (chan (sliding-buffer 1))})
+  (will-mount [_]
+              (let [query-chan (om/get-state owner :query-chan)]
+                (put! query-chan (editing-citation-text citations))
+                ;; only take every 750 ms
+                (go-loop [text (<! query-chan)]
+                  (send-and-update!
+                   [::citation-match {:text text}]
+                   citations
+                   :results)
+                  (recur (<! query-chan)))))
+  (render-state [_ {:keys [citation-chan query-chan]}]
+                (citation-view citations citation-chan query-chan)))
 
 (defn deposit-status [deposit]
   (condp = (:status deposit)
@@ -84,11 +148,21 @@
    (for [doi (:dois deposit)]
      (dom/tr (dom/td doi)))))
 
-(defn deposit-citations [deposit]
+(defn deposit-citations [deposit citation-chan]
   (dom/table
-   {:class "table"}
-   (for [citation (:citations deposit)]
-     (dom/tr (dom/td citation)))))
+   {:class "table table-hover table-hover-pointer"}
+   (dom/thead
+    (dom/tr (dom/th "Citation text")
+            (dom/th "Matched to")))
+   (dom/tbody
+    (for [c (:citations deposit)]
+      (dom/tr
+       {:on-click #(put! citation-chan {:list (:citations @deposit) :editing 0})}
+       (dom/td (:text c))
+       (dom/td
+        (if (:match c)
+          (match-details (:match c))
+          (dom/p "Not matched"))))))))
 
 (defn deposit-submission [deposit]
   (dom/table
@@ -108,7 +182,7 @@
 
 (defcomponent deposit [deposit owner]
   (render-state
-   [_ {:keys [open-chan]}]
+   [_ {:keys [open-chan citation-chan]}]
    (dom/div
     {:class "fadein"}
     (dom/div
@@ -124,7 +198,7 @@
        :active true}
       {:name :citations
        :label "Extracted Citations"
-       :content (deposit-citations deposit)}
+       :content (deposit-citations deposit citation-chan)}
       {:name :submission
        :label "Submission Log"
        :content (deposit-submission deposit)}]))))
@@ -149,19 +223,30 @@
                       :deposits)))
 
 (defcomponent deposit-list [app owner]
-  (init-state [_] {:open-chan (chan)})
+  (init-state [_] {:open-chan (chan)
+                   :citation-chan (chan)})
   (will-mount [_]
               (send-and-update! [::deposits {:rows 10}] app :deposits)
               (let [open-chan (om/get-state owner :open-chan)]
                 (go-loop [deposit (<! open-chan)]
                   (om/update! app :deposit deposit)
-                  (recur (<! open-chan)))))
-  (render-state [_ {:keys [open-chan]}]
+                  (recur (<! open-chan))))
+              (let [citation-chan (om/get-state owner :citation-chan)]
+                (go-loop [citations (<! citation-chan)]
+                  (om/update! app :citations citations)
+                  (recur (<! citation-chan)))))
+  (render-state [_ {:keys [open-chan citation-chan]}]
                 (cond
+                 (not (empty? (:citations app)))
+                 (om/build citation
+                           (:citations app)
+                           {:init-state {:citation-chan citation-chan}})
+                 
                  (not (empty? (:deposit app)))
                  (om/build deposit
                            (:deposit app)
-                           {:init-state {:open-chan open-chan}})
+                           {:init-state {:open-chan open-chan
+                                         :citation-chan citation-chan}})
 
                  (not (nil? (:deposits app)))
                  (dom/div
@@ -191,8 +276,7 @@
      #(success-fn %))))
 
 (defn add-local-deposit [app deposit]
-  (println deposit)
-  (om/transact! app :deposits #(conj % deposit)))
+  (om/transact! app [:deposits :items] #(into [deposit] %)))
 
 (defn pdf-upload [app]
   (dom/div
@@ -238,7 +322,7 @@
   (dom/div
    {:class "modal fade"
     :id "upload-modal"
-    :taxindex "-1"
+    :tabindex "-1"
     :role "dialog"
     :aria-hidden "true"}
    (dom/div

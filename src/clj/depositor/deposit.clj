@@ -3,6 +3,7 @@
             [compojure.core :refer [defroutes GET]]
             [org.httpkit.client :as hc]
             [clojure.data.json :as json]
+            [clojure.string :as string]
             [depositor.event :refer [handle-socket-event]]
             [depositor.layout :refer [identity-credentials page-with-sidebar]]))
 
@@ -34,19 +35,21 @@
             deref)]
     (-> body (json/read-str :key-fn keyword) :message)))
 
+(defn get-citation-matches [{:keys [text]}]
+  (let [clean-text (string/replace text #"(?U)[^\w]" " ")]
+    (-> "http://api.crossref.org/v1/works"
+        (hc/get {:query-params {:query clean-text :rows 10}})
+        deref
+        :body
+        (json/read-str :key-fn keyword)
+        :message
+        :items)))
+
 (defn deposits-page [t]
   [:div
    [:div#deposits-page
     [:h4 "Deposits"]
-    [:div#deposits]]
-   [:div#deposit-page.hidden
-    [:h4 "Deposit"]
-    [:div#deposit]]])
-
-   ;[(keyword (str "div#" (name t) "-deposits"))]])
-
-;; (defn handle-socket-event ::deposit
-;;   [{:keys [ring-req ?reply-fn ?data]}]
+    [:div#deposits]]])
   
 (defmethod handle-socket-event ::deposits
   [{:keys [ring-req ?reply-fn ?data]}]
@@ -60,6 +63,10 @@
 (defmethod handle-socket-event ::deposit-link
   [{:keys [ring-req ?reply-fn ?data]}]
   (-> ring-req identity-credentials (put-deposit ?data) ?reply-fn))
+
+(defmethod handle-socket-event ::citation-match
+  [{:keys [?reply-fn ?data]}]
+  (-> ?data get-citation-matches ?reply-fn))
     
 (defroutes deposit-routes
   (GET "/finished" req (page-with-sidebar req (deposits-page :finished)))
