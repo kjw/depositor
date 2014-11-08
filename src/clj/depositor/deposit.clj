@@ -5,6 +5,7 @@
             [clojure.data.json :as json]
             [clojure.string :as string]
             [depositor.event :refer [handle-socket-event]]
+            [depositor.generate :refer [citation-deposit]]
             [depositor.layout :refer [identity-credentials page-with-sidebar]]))
 
 (defn get-deposits [{:keys [username password]} params]
@@ -36,14 +37,25 @@
     (-> body (json/read-str :key-fn keyword) :message)))
 
 (defn get-citation-matches [{:keys [text]}]
-  (let [clean-text (string/replace text #"(?U)[^\w]" " ")]
+  (let [clean-text (string/replace text #"(?U)[^\w]+" " ")]
     (-> "http://api.crossref.org/v1/works"
-        (hc/get {:query-params {:query clean-text :rows 10}})
+        (hc/get {:query-params {:query clean-text :rows 4}})
         deref
         :body
         (json/read-str :key-fn keyword)
         :message
         :items)))
+
+(defn generate-deposit [{:keys [username password]}
+                        {:keys [from-id doi citations]}]
+  (-> "https://api.crossref.org/v1/deposits"
+      (hc/post {:basic-auth [username password]
+                :query-params {:link from-id}
+                :body (citation-deposit doi citations)})
+      deref
+      :body
+      (json/read-str :key-fn keyword)
+      :message))
 
 (defn deposits-page [t]
   [:div
@@ -67,6 +79,10 @@
 (defmethod handle-socket-event ::citation-match
   [{:keys [?reply-fn ?data]}]
   (-> ?data get-citation-matches ?reply-fn))
+
+(defmethod handle-socket-event ::generate-deposit
+  [{:keys [ring-req ?reply-fn ?data]}]
+  (-> ring-req identity-credentials (generate-deposit ?data) ?reply-fn))
     
 (defroutes deposit-routes
   (GET "/finished" req (page-with-sidebar req (deposits-page :finished)))

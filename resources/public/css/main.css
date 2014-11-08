@@ -132,6 +132,10 @@ a, a:hover, a:visited {
     cursor: pointer;
 }
 
+.text-grey {
+    color: #bbb;
+}
+
 body {
     font-family: "Raleway","Helvetica Neue",Helvetica,Arial,sans-serif;
 }

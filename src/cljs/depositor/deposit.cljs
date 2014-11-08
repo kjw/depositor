@@ -54,11 +54,19 @@
 (defn editing-citation-text [citations]
   (get-in citations [:list (:editing citations) :text]))
 
+(defn editing-citation-doi [citations]
+  (get-in citations [:list (:editing citations) :match :DOI]))
+
 (defn change-citation-text [citations s query-chan]
   (om/update! citations
               [:list (:editing @citations) :text]
               s)
   (put! query-chan s))
+
+(defn change-citation-match [citations match]
+  (om/update! citations
+              [:list (:editing @citations) :match]
+              match))
 
 (defn match-details [match]
   (dom/div
@@ -72,6 +80,13 @@
     (dom/a
      {:href (str "http://dx.doi.org/" (:DOI match))}
      (:DOI match)))))
+
+(defn match-selector [& {:keys [selected] :or {selected false}}]
+  (let [clz (if selected "text-success" "text-grey")
+        icon (if selected :ok-circle :record)]
+    (dom/div
+     (dom/h1 {:class clz}
+             (util/icon icon)))))
 
 (defn citation-view [citations citation-chan query-chan]
   (dom/div
@@ -89,12 +104,17 @@
                                                       query-chan)}))
     (dom/div
      {:class "form-group"}
-     (dom/label "Potential DOI matches")
+     (dom/label "Suggested DOI matches")
      (dom/table
-      {:class "table"}
+      {:class "table table-hover table-hover-pointer"}
       (dom/tbody
        (for [result (:results citations)]
-         (dom/tr (dom/td (match-details result)))))))
+         (dom/tr
+          {:on-click #(change-citation-match citations result)}
+          (dom/td (match-selector
+                   :selected (= (:DOI result)
+                                (editing-citation-doi citations))))
+          (dom/td (match-details result)))))))
     (dom/p
      (dom/div {:class "pull-right"}
               (dom/div
@@ -148,16 +168,23 @@
    (for [doi (:dois deposit)]
      (dom/tr (dom/td doi)))))
 
+(defn deposit-title [deposit]
+  (dom/h5
+   (or (:title deposit) (:filename deposit))))
+
 (defn deposit-citations [deposit citation-chan]
   (dom/table
    {:class "table table-hover table-hover-pointer"}
    (dom/thead
-    (dom/tr (dom/th "Citation text")
+    (dom/tr (dom/th "#")
+            (dom/th "Citation text")
             (dom/th "Matched to")))
    (dom/tbody
     (for [c (:citations deposit)]
       (dom/tr
        {:on-click #(put! citation-chan {:list (:citations @deposit) :editing 0})}
+       (dom/td
+        (when (:number c) (dom/h5 (str (:number c) "."))))
        (dom/td (:text c))
        (dom/td
         (if (:match c)
@@ -211,6 +238,7 @@
                                (dom/div {:class "col-md-1"}
                                         (deposit-status deposit))
                                (dom/div {:class "col-md-9"}
+                                        (deposit-title deposit)
                                         (deposit-labels deposit)
                                         (deposit-created deposit))
                                (dom/div {:class "col-md-2"}
