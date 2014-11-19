@@ -352,6 +352,19 @@
                       app
                       :deposits)))
 
+(defn deposit-list-selectors []
+  (dom/ul
+   {:class "list-inline"}
+   (dom/li
+    (util/dropdown-selector "Status" ["All" "In progress" "Finished" "Failed"]))
+   (dom/li
+    (util/dropdown-selector "Type" ["All" "PDF" "Deposit XML" "Resource XML" "Patent Citations"]))
+   (dom/li
+    (util/dropdown-selector "Test" ["All" "Yes" "No"]))
+   (dom/li
+    {:class "pull-right"}
+    (util/dropdown-selector "Order" ["Descending" "Ascending"]))))
+
 (defcomponent deposit-list [app owner]
   (init-state [_] {:open-chan (chan)
                    :citation-chan (chan)})
@@ -380,14 +393,15 @@
 
                  (not (nil? (:deposits app)))
                  (dom/div
-                   {:class "fadein"}
-                   (dom/table {:class "table table-hover table-hover-pointer"}
-                           (om/build-all
-                            deposit-item
-                            (get-in app [:deposits :items])
-                            {:init-state {:open-chan open-chan}}))
-                   (util/paginate-list (:deposits app)
-                                       (change-deposits-page app)))
+                  {:class "fadein"}
+                  (deposit-list-selectors)
+                  (dom/table {:class "table table-hover table-hover-pointer"}
+                             (om/build-all
+                              deposit-item
+                              (get-in app [:deposits :items])
+                              {:init-state {:open-chan open-chan}}))
+                  (util/paginate-list (:deposits app)
+                                      (change-deposits-page app)))
 
                  :else
                  (util/loader))))

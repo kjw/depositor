@@ -81,9 +81,9 @@
      [:li [:a {:href "/deposits/incomplete"}
            [:span.glyphicon.glyphicon-repeat.link-icon] "In progress"]]
      [:li [:a {:href "/deposits/finished"}
-           [:span.glyphicon.glyphicon-ok-sign.link-icon] "Finished"]]
+           [:span.glyphicon.glyphicon-ok-circle.link-icon] "Finished"]]
      [:li [:a {:href "/deposits/failed"}
-           [:span.glyphicon.glyphicon-warning-sign.link-icon] "Failed"]]]]
+           [:span.glyphicon.glyphicon-remove-circle.link-icon] "Failed"]]]]
    [:div.sidebar-block
     [:h4 "Member"]
     [:ul.list-unstyled

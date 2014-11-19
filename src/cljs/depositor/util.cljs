@@ -15,27 +15,24 @@
   (dom/span {:class (str "glyphicon glyphicon-" (name k))}))
  
 (defn paginate [total rows offset & {:keys [change-fn]}]
-  (let [current-page (inc (* (/ total rows) offset))]
+  (let [current-page (inc (/ total rows offset))]
     (dom/div
-     {:class "row"}
-     (dom/div
-      {:class "col-md-8"}
-      (dom/ul
-       {:class "pagination"}
-       (dom/li (dom/a {:href "#"} (icon :chevron-left)))
-       (for [pg (map inc (range (/ total rows)))]
-         (if (= pg current-page)
-           (dom/li {:class "active"} (dom/a {:href "#"} pg))
-           (dom/li
-            (if change-fn
-              (dom/a {:href "#" :on-click #(change-fn pg)} pg)
-              (dom/a {:href "#"} pg)))))
-       (dom/li (dom/a {:href "#"} (icon :chevron-right)))))
-     (dom/div
-      {:class "col-md-4 text-align-right"}
-      (dom/span
+     (dom/ul
+      {:class "list-inline"}
+      (dom/li
        {:class "small"}
-       (str "Page " current-page " of " total " results"))))))
+       (dom/span (str current-page " of " total " deposits")))
+      (dom/li
+       {:class "pull-right"}
+       (dom/ul
+        {:class "pagination small" :style {:margin-top "0px"}}
+        (for [pg (map inc (range (/ total rows)))]
+          (if (= pg current-page)
+            (dom/li {:class "active"} (dom/a {:href "#"} pg))
+            (dom/li
+             (if change-fn
+               (dom/a {:href "#" :on-click #(change-fn pg)} pg)
+               (dom/a {:href "#"} pg)))))))))))
 
 (defn paginate-list
   "Paginate a REST API list message"
@@ -95,6 +92,21 @@
         :on-change (:change-fn r)
         :autocomplete "off"}
        (:label r))))))
+
+(defn dropdown-selector [label options]
+  (dom/div
+   {:class "btn-group"}
+   (dom/button
+    {:type "button"
+     :class "btn btn-default btn-sm dropdown-toggle"
+     :data-toggle "dropdown"
+     :aria-expanded "false"}
+    (str label ": " (first options) " ")
+    (dom/span {:class "caret"}))
+   (dom/ul
+    {:class "dropdown-menu" :role "menu"}
+    (for [option (drop 1 options)]
+      (dom/li (dom/a {:href "#"} option))))))
 
 (defn format-percent [n]
   (str (->> n (* 100) (gs/format "%1.1f")) "%"))
