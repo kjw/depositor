@@ -76,8 +76,10 @@
    [:div.sidebar-block
     [:h4 "Deposits"]
     [:ul.list-unstyled
+     [:li [:a {:href "/deposits/all"}
+           [:span.glyphicon.glyphicon-th.link-icon] "All"]]
      [:li [:a {:href "/deposits/incomplete"}
-           [:span.glyphicon.glyphicon-inbox.link-icon] "Incomplete"]]
+           [:span.glyphicon.glyphicon-repeat.link-icon] "In progress"]]
      [:li [:a {:href "/deposits/finished"}
            [:span.glyphicon.glyphicon-ok-sign.link-icon] "Finished"]]
      [:li [:a {:href "/deposits/failed"}

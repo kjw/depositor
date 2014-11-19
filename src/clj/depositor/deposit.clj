@@ -6,16 +6,33 @@
             [clojure.string :as string]
             [depositor.event :refer [handle-socket-event]]
             [depositor.generate :refer [citation-deposit]]
+            [clj-time.format :as tf]
+            [clj-time.coerce :as tco]
             [depositor.layout :refer [identity-credentials page-with-sidebar]]))
 
+(def deposit-submit-time-format
+  (tf/formatter "EEE MMM dd HH:mm:ss ZZZ yyyy"))
+
+;; Below we choose an alternative +2GMT timezone to replace CEST,
+;; which is not understood by clj-time.
+(defn reformat-submit-time [deposit]
+  (update-in
+   deposit
+   [:submitted-at]
+   #(let [no-cest (string/replace % #"CEST" "EET")]
+      (->> no-cest (tf/parse deposit-submit-time-format) tco/to-long))))
+
 (defn get-deposits [{:keys [username password]} params]
-  (-> "https://api.crossref.org/v1/deposits"
-      (hc/get {:basic-auth [username password]
-               :query-params params})
-      deref
-      :body
-      (json/read-str :key-fn keyword)
-      :message))
+  (update-in
+      (-> "https://api.crossref.org/v1/deposits"
+          (hc/get {:basic-auth [username password]
+                   :query-params params})
+          deref
+          :body
+          (json/read-str :key-fn keyword)
+          :message)
+    [:items]
+    #(map reformat-submit-time %)))
 
 (defn get-deposit [{:keys [username password]} id]
   (-> (str "https://api.crossref.org/v1/deposits/" id)
@@ -23,7 +40,8 @@
       deref
       :body
       (json/read-str :key-fn keyword)
-      :message))
+      :message
+      reformat-submit-time))
 
 (defn put-deposit [{:keys [username password]}
                    {:keys [url filename content-type]}]
@@ -34,7 +52,10 @@
                                      :filename filename}
                       :headers {"Content-Type" content-type}})
             deref)]
-    (-> body (json/read-str :key-fn keyword) :message)))
+    (-> body
+        (json/read-str :key-fn keyword)
+        :message
+        reformat-submit-time)))
 
 (defn get-citation-matches [{:keys [text]}]
   (let [clean-text (string/replace text #"(?U)[^\w]+" " ")]
@@ -55,7 +76,8 @@
       deref
       :body
       (json/read-str :key-fn keyword)
-      :message))
+      :message
+      reformat-submit-time))
 
 (defn deposits-page [t]
   [:div {:style "margin-top: 30px"}

@@ -23,7 +23,7 @@
 
 (def deposit-types
   {"application/pdf" 
-   "Reference List from PDF"
+   "PDF"
    "application/vnd.crossref.patent-citations+tab-separated-values+g-zip" 
    "Patent Citations"
    "application/vnd.crossref.patent-citations+tab-separated-values"
@@ -33,9 +33,9 @@
    "application/vnd.crossref.patent-citations+csv"
    "Patent Citations"
    "application/vnd.crossref.partial+xml"
-   "Partial Deposit XML"
+   "Resource XML"
    "application/vnd.crossref.deposit+xml"
-   "Full Deposit XML"})
+   "Deposit XML"})
 
 (def page-state
   (atom {:deposits nil
@@ -141,25 +141,57 @@
                 (citation-view citations citation-chan query-chan)))
 
 (defn deposit-status [deposit]
-  (condp = (:status deposit)
-    "submitted" (dom/span {:class "text-info glyphicon glyphicon-inbox"})
-    "completed" (dom/span {:class "text-success glyphicon glyphicon-ok"})
-    "failed" (dom/span {:class "text-danger glyphicon glyphicon-remove"})))
+  (dom/h1
+   {:class "text-center" :style {:margin-left "10px"}}
+   (condp = (:status deposit)
+     "submitted" (dom/span {:class "text-muted"} (util/icon :repeat))
+     "completed" (dom/span {:class "text-success"} (util/icon :ok-circle))
+     "failed" (dom/span {:class "text-danger"} (util/icon :remove-circle)))))
+
+(defn deposit-info-row [label val]
+  (dom/div
+   {:class "row" :style {:font-size ".9em"}}
+   (dom/div
+    {:class "col-md-7 text-right"
+     :style {:padding-right "0"}}
+    (dom/b label))
+   (dom/div
+    {:class "col-md-5"}
+    (dom/span val))))
 
 (defn deposit-doi-count [deposit]
-  (when-not (nil? (:dois deposit))
-    (dom/span (dom/b (str (count (:dois deposit)) " DOIs")))))
+  (dom/div
+   {:style {:margin-top "10px" :margin-right "15px"}}
+   (when-not (-> deposit :dois nil?)
+     (deposit-info-row "DOIs" (-> deposit :dois count)))
+   (when-not (-> deposit :citations nil?)
+     (deposit-info-row "Citations" (-> deposit :citations count)))
+   (when-not (-> deposit :citations nil?)
+     (deposit-info-row
+      "Matched"
+      (count
+       (filter #(-> % :match nil? not) (:citations deposit)))))
+   (when-not (-> deposit :length nil?)
+     (deposit-info-row
+      "Size"
+      (-> deposit :length (/ 1024) int (str "KiB"))))))
 
 (defn deposit-labels [deposit]
-  (dom/div
-   (dom/span {:class "label label-default"}
-             (-> deposit :content-type deposit-types))
-   (when (:test deposit)
-     (dom/span {:class "label label-warning"} "Test"))))
-
+  (dom/h4
+   (dom/ul
+    {:class "list-inline"}
+    (dom/li
+     (dom/span {:class "label label-default"}
+               (-> deposit :content-type deposit-types)))
+    (when (:test deposit)
+      (dom/li
+       (dom/span {:class "label label-warning"} "Test"))))))
+  
 (defn deposit-created [deposit]
   (dom/div
-   (dom/span {:class "small"} (str "Created " (:submitted-at deposit)))))
+   (dom/span
+    {:class "small"}
+    (-> deposit :submitted-at util/friendly-date))))
 
 (defn deposit-details [deposit]
   (dom/form
@@ -172,13 +204,6 @@
      (dom/a
       {:href (str "https://api.crossref.org/v1/deposits/" (:batch-id deposit))}
       (:batch-id deposit))))
-   ;; (when (:title deposit)
-   ;;   (dom/div
-   ;;    {:class "form-group"}
-   ;;    (dom/label {:class "col-sm-3 control-label"} "Extracted Title")
-   ;;    (dom/div
-   ;;     {:class "col-sm-9"}
-   ;;     (:title deposit))))
    (when (:filename deposit)
      (dom/div
       {:class "form-group"}
@@ -194,12 +219,31 @@
 (defn deposit-dois [deposit]
   (dom/table
    {:class "table"}
-   (for [doi (:dois deposit)]
-     (dom/tr (dom/td doi)))))
+   (dom/thead
+    (dom/tr (dom/th "DOI") (dom/th "")))
+   (dom/tbody
+    (for [doi (:dois deposit)]
+      (dom/tr
+       (dom/td doi)
+       (dom/td
+        (dom/ul
+         {:class "list-inline small text-right"}
+         (dom/li
+          (dom/a {:href (str "http://api.crossref.org/works/" doi)}
+                 (util/icon :file) " JSON"))
+         (dom/li
+          (dom/a {:href (str "http://api.crossref.org/works/" doi ".xml")}
+                 (util/icon :file) " XML"))
+         (dom/li
+          (dom/a {:href (str "http://search.crossref.org/?q=" doi)}
+                 (util/icon :search) " Metadata Search"))
+         (dom/li
+          (dom/a {:href (str "http://dx.doi.org/" doi)}
+                 (util/icon :new-window) " Resolve DOI")))))))))
 
 (defn deposit-title [deposit]
-  (dom/h5
-   (or (:title deposit) (:filename deposit))))
+  (dom/h4
+   (or (:title deposit) (:filename deposit) (:batch-id deposit))))
 
 (defn deposit-citations [deposit citation-chan]
   (dom/table
@@ -236,52 +280,71 @@
         (:message msg)))
       (dom/td (when (:related-doi msg) (:related-doi msg)))))))
 
+(defn deposit-dois? [deposit] (not (nil? (:dois deposit))))
+(defn deposit-submission? [deposit] (not (nil? (:submission deposit))))
+(defn deposit-citations? [deposit] (not (nil? (:citations deposit))))
+(defn deposit-handoff? [deposit] (not (nil? (:handoff deposit))))
+
 (defcomponent deposit [deposit owner]
   (render-state
    [_ {:keys [open-chan citation-chan]}]
-   (dom/div
-    {:class "fadein"}
-    (dom/div
-     {:style {:margin-bottom "20px"}}
-     (dom/button
-      {:class "btn btn-success btn-sm pull-right"}
-      (util/icon :cloud-upload)
-      " Deposit citations")
-     (dom/a
-      {:href "#" :on-click #(put! open-chan {})}
-      (util/icon :arrow-left) " Back"))
-    (if (:title deposit)
-      (util/in-panel (deposit-details deposit) :title (:title deposit))
-      (util/in-panel (deposit-details deposit)))
-    (util/tabs
-     [{:name :dois
-       :label "DOIs in Deposit"
-       :content (deposit-dois deposit)
-       :active true}
-      {:name :citations
-       :label (dom/span
-               "Extracted Citations "
-               (dom/span
-                {:class "badge"}
-                (count (:citations deposit))))
-       :content (deposit-citations deposit citation-chan)}
-      {:name :submission
-       :label "Submission Log"
-       :content (deposit-submission deposit)}]))))
+   (let [tabs
+         (concat
+          (when (deposit-dois? deposit)
+            [{:name :dois
+              :label (dom/span
+                      "DOIs in Deposit "
+                      (dom/span
+                       {:class "badge"}
+                       (count (:dois deposit))))
+              :content (deposit-dois deposit)}])
+          (when (deposit-citations? deposit)
+            [{:name :citations
+              :label (dom/span
+                      "Extracted Citations "
+                      (dom/span
+                       {:class "badge"}
+                       (count (:citations deposit))))
+              :content (deposit-citations deposit citation-chan)}])
+          (when (deposit-submission? deposit)
+            [{:name :submission
+              :label "Submission Log"
+              :content (deposit-submission deposit)}]))
+         tabs-with-active (concat
+                           [(assoc (first tabs) :active true)]
+                           (drop 1 tabs))]
+     (dom/div
+      {:class "fadein"}
+      (dom/div
+       {:style {:margin-bottom "20px"}}
+       (when (deposit-citations? deposit)
+         (dom/button
+          {:class "btn btn-success btn-sm pull-right"}
+          (util/icon :cloud-upload)
+          " Deposit citations"))
+       (dom/a
+        {:href "#" :on-click #(put! open-chan {})}
+        (util/icon :arrow-left) " Back"))
+      (if (:title deposit)
+        (util/in-panel (deposit-details deposit) :title (:title deposit))
+        (util/in-panel (deposit-details deposit)))
+      (util/tabs tabs-with-active)))))
     
 (defcomponent deposit-item [deposit owner]
   (render-state [_ {:keys [open-chan]}]
-                (dom/li {:class "row list-group-item"}
-                        (dom/a {:href "#"
-                                :on-click #(put! open-chan deposit)}
-                               (dom/div {:class "col-md-1"}
-                                        (deposit-status deposit))
-                               (dom/div {:class "col-md-9"}
-                                        (deposit-title deposit)
-                                        (deposit-labels deposit)
-                                        (deposit-created deposit))
-                               (dom/div {:class "col-md-2"}
-                                        (deposit-doi-count deposit))))))
+                (dom/tr
+                 {:on-click #(put! open-chan deposit)}
+                 (dom/td
+                  (dom/div
+                   {:class "row"}
+                   (dom/div {:class "col-md-1"}
+                            (deposit-status deposit))
+                   (dom/div {:class "col-md-8"}
+                            (deposit-title deposit)
+                            (deposit-labels deposit)
+                            (deposit-created deposit))
+                   (dom/div {:class "col-md-3"}
+                            (deposit-doi-count deposit)))))))
 
 (defn change-deposits-page [app]
   (fn [page-number]
@@ -318,7 +381,7 @@
                  (not (nil? (:deposits app)))
                  (dom/div
                    {:class "fadein"}
-                   (dom/ul {:class "list-group"}
+                   (dom/table {:class "table table-hover table-hover-pointer"}
                            (om/build-all
                             deposit-item
                             (get-in app [:deposits :items])

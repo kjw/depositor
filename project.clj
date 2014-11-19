@@ -24,6 +24,7 @@
                  [environ "1.0.0"]
                  [hiccup "1.0.5"]
                  [com.andrewmcveigh/cljs-time "0.2.1"]
+                 [clj-time "0.8.0"]
                  [javax.servlet/servlet-api "2.5"]]
 
   :plugins [[lein-cljsbuild "1.0.3"]
