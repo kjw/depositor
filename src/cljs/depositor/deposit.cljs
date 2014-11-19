@@ -280,6 +280,17 @@
         (:message msg)))
       (dom/td (when (:related-doi msg) (:related-doi msg)))))))
 
+(defn deposit-handoff [deposit]
+  (dom/ul
+   (dom/li
+    (str "Status: " (get-in deposit [:handoff :status])))
+   (dom/li
+    (str "Status updated at: " (util/friendly-date (get-in deposit [:handoff :timestamp]))))
+   (dom/li
+    (str "Try count: " (get-in deposit [:handoff :try-count])))
+   (dom/li
+    (str "Next try in (if applicable): " (/ (get-in deposit [:handoff :delay-millis]) 1000) " seconds"))))
+
 (defn deposit-dois? [deposit] (not (nil? (:dois deposit))))
 (defn deposit-submission? [deposit] (not (nil? (:submission deposit))))
 (defn deposit-citations? [deposit] (not (nil? (:citations deposit))))
@@ -309,7 +320,11 @@
           (when (deposit-submission? deposit)
             [{:name :submission
               :label "Submission Log"
-              :content (deposit-submission deposit)}]))
+              :content (deposit-submission deposit)}])
+          (when (deposit-handoff? deposit)
+            [{:name :handoff
+              :label "Handoff Status"
+              :content (deposit-handoff deposit)}]))
          tabs-with-active (concat
                            [(assoc (first tabs) :active true)]
                            (drop 1 tabs))]
@@ -363,7 +378,7 @@
     (util/dropdown-selector "Test" ["All" "Yes" "No"]))
    (dom/li
     {:class "pull-right"}
-    (util/dropdown-selector "Order" ["Descending" "Ascending"]))))
+    (util/dropdown-selector "Sort by" ["Newest" "Oldest"]))))
 
 (defcomponent deposit-list [app owner]
   (init-state [_] {:open-chan (chan)

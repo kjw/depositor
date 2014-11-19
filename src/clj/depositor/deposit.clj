@@ -106,6 +106,7 @@
   (-> ring-req identity-credentials (generate-deposit ?data) ?reply-fn))
     
 (defroutes deposit-routes
+  (GET "/all" req (page-with-sidebar req (deposits-page :all)))
   (GET "/finished" req (page-with-sidebar req (deposits-page :finished)))
   (GET "/failed" req (page-with-sidebar req (deposits-page :failed)))
   (GET "/incomplete" req (page-with-sidebar req (deposits-page :incomplete))))
