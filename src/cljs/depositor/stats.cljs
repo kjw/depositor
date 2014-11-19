@@ -182,8 +182,13 @@
   (let [data (if (= :none id)
                {}
                {:id id})]
+    (ws/send! [::license-breakdown data]
+              (fn [reply]
+                (when (cb-success? reply)
+                  (om/update! app :member-licenses reply)
+                  (doseq [license reply]
+                    (check-license app license)))))
     (send-and-update! [::member-status data] app :member-status)
-    (send-and-update! [::license-breakdown data] app :member-licenses)
     (send-and-update! [::funding-breakdown data] app :member-funders)))
 
 (defcomponent statistics [app owner]

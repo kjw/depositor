@@ -30,6 +30,8 @@
             [lein-environ "1.0.0"]
             [com.cemerick/austin "0.1.5"]]
 
+  :main depositor.server
+
   :profiles {:dev {:env {:server-port 3000
                          :server-threads 2
                          :server-queue-size 1000

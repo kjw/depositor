@@ -43,3 +43,11 @@
   (when-not (nil? @server)
     (@server :timeout 100)
     (reset! server nil)))
+
+(defn -main []
+  (event/start)
+  (run-server #'all-routes
+              {:port (env :server-port)
+               :thread (env :server-threads)
+               :queue-size (env :server-queue-size)
+               :join? false}))

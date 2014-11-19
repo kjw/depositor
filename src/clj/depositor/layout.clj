@@ -66,7 +66,7 @@
      [:a.navbar-brand {:href "#"}
       [:span
        [:img {:src "/img/logo.png" :style "width:160px;margin-top:-6px;"}]
-       "&nbsp;Console"]]]
+       [:span {:style "font-size: .9em;"} "&nbsp;depositor"]]]]
     [:div.collapse.navbar-collapse
      (header-links req)
      (header-account-info req)]]])

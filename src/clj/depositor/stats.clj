@@ -43,6 +43,7 @@
 
 (defn get-license-uri-availability [uri]
   (let [{:keys [error status]} (-> uri hc/get deref)]
+    (prn error)
     (and (not error) (= 200 status))))
 
 (defn stats-page [req]

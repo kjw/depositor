@@ -76,7 +76,7 @@
    (dom/div
     {:class "panel-body"}
     (when title
-      (dom/div {:class "panel-title"} title))
+      (dom/h4 {:class "panel-title"} title))
     content)))
 
 (defn radios [name rs]

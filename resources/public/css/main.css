@@ -20,6 +20,21 @@ a, a:hover, a:visited {
     background-color: #c0473f;
 }
 
+.pagination > li > a:hover, .pagination > li > span:hover, .pagination > li > a:focus, .pagination > li > span:focus {
+    background-color: #c0473f;
+    border-color:  #c0473f;
+}
+
+.pagination > .active > a {
+    background-color: #c0473f;
+    border-color:  #c0473f;
+}
+
+.pagination > .active > a, .pagination > .active > span, .pagination > .active > a:hover, .pagination > .active > span:hover, .pagination > .active > a:focus, .pagination > .active > span:focus {
+    background-color: #c0473f;
+    border-color:  #c0473f;
+}
+								   
 .navbar {
   #font-size: 1.9em;
 }
@@ -35,6 +50,12 @@ a, a:hover, a:visited {
 .black-shadow {
   text-shadow: 2px 2px 4px #444;
   color: #ffffff;
+}
+
+.vcenter {
+    display: inline-block;
+    vertical-align: middle;
+    float: none;
 }
 
 .navbar {

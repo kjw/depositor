@@ -116,12 +116,14 @@
                                 (editing-citation-doi citations))))
           (dom/td (match-details result)))))))
     (dom/p
-     (dom/div {:class "pull-right"}
-              (dom/div
-               (dom/button {:class "btn btn-default"
-                            :on-click #(put! citation-chan {})}
-                           "Discard changes")
-               (dom/button {:class "btn btn-success"} "Save")))))))
+     (dom/div
+      {:class "pull-right"}
+      (dom/p
+       (dom/button {:class "btn btn-default"
+                    :style {:margin-right "5px"}
+                    :on-click #(put! citation-chan {})}
+                   "Discard changes")
+       (dom/button {:class "btn btn-success"} "Save")))))))
 
 (defcomponent citation [citations owner]
   (init-state [_] {:query-chan (chan (sliding-buffer 1))})
@@ -160,7 +162,34 @@
    (dom/span {:class "small"} (str "Created " (:submitted-at deposit)))))
 
 (defn deposit-details [deposit]
-  (dom/div nil))
+  (dom/form
+   {:class "form-horizontal"}
+   (dom/div
+    {:class "form-group"}
+    (dom/label {:class "col-sm-3 control-label"} "Deposit ID")
+    (dom/div
+     {:class "col-sm-9" :style {:margin-top "8px"}}
+     (dom/a
+      {:href (str "https://api.crossref.org/v1/deposits/" (:batch-id deposit))}
+      (:batch-id deposit))))
+   ;; (when (:title deposit)
+   ;;   (dom/div
+   ;;    {:class "form-group"}
+   ;;    (dom/label {:class "col-sm-3 control-label"} "Extracted Title")
+   ;;    (dom/div
+   ;;     {:class "col-sm-9"}
+   ;;     (:title deposit))))
+   (when (:filename deposit)
+     (dom/div
+      {:class "form-group"}
+      (dom/label {:class "col-sm-3 control-label"} "Filename")
+      (dom/div
+       {:class "col-sm-9" :style {:margin-top "8px"}}
+       (dom/a
+        {:href (str "https://api.crossref.org/v1/deposits/"
+                    (:batch-id deposit)
+                    "/data")}
+        (:filename deposit)))))))
 
 (defn deposit-dois [deposit]
   (dom/table
@@ -213,18 +242,28 @@
    (dom/div
     {:class "fadein"}
     (dom/div
-     {:class "well well-sm"}
+     {:style {:margin-bottom "20px"}}
+     (dom/button
+      {:class "btn btn-success btn-sm pull-right"}
+      (util/icon :cloud-upload)
+      " Deposit citations")
      (dom/a
       {:href "#" :on-click #(put! open-chan {})}
-      "Back to list"))
-    (util/in-panel "Details" (deposit-details deposit))
+      (util/icon :arrow-left) " Back"))
+    (if (:title deposit)
+      (util/in-panel (deposit-details deposit) :title (:title deposit))
+      (util/in-panel (deposit-details deposit)))
     (util/tabs
      [{:name :dois
        :label "DOIs in Deposit"
        :content (deposit-dois deposit)
        :active true}
       {:name :citations
-       :label "Extracted Citations"
+       :label (dom/span
+               "Extracted Citations "
+               (dom/span
+                {:class "badge"}
+                (count (:citations deposit))))
        :content (deposit-citations deposit citation-chan)}
       {:name :submission
        :label "Submission Log"
@@ -307,11 +346,12 @@
   (om/transact! app [:deposits :items] #(into [deposit] %)))
 
 (defn pdf-upload [app]
-  (dom/div
-   (dom/p        
+  (dom/div {:style {:margin-top "20px"}}
+   (dom/h4
     "Extract the reference list from a PDF and add to an existing DOI.")
    (dom/button
     {:type "button"
+     :style {:margin-top "30px"}
      :on-click (file-picker
                 #js ["application/pdf"]
                 #(doseq [blob (js->clj % :keywordize-keys true)]
@@ -320,7 +360,7 @@
                                :content-type "application/pdf"
                                :filename (:filename blob)}]
                              (partial add-local-deposit app))))
-     :class "btn btn-primary btn-lg"}
+     :class "btn btn-block btn-success btn-lg"}
     (util/icon :upload)
     " Upload PDFs")))
 

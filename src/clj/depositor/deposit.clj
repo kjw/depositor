@@ -58,9 +58,8 @@
       :message))
 
 (defn deposits-page [t]
-  [:div
+  [:div {:style "margin-top: 30px"}
    [:div#deposits-page
-    [:h4 "Deposits"]
     [:div#deposits]]])
   
 (defmethod handle-socket-event ::deposits
