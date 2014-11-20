@@ -15,13 +15,13 @@
   (dom/span {:class (str "glyphicon glyphicon-" (name k))}))
  
 (defn paginate [total rows offset & {:keys [change-fn]}]
-  (let [current-page (inc (/ total rows offset))]
+  (let [current-page (inc (/ offset rows))]
     (dom/div
      (dom/ul
       {:class "list-inline"}
       (dom/li
        {:class "small"}
-       (dom/span (str current-page " of " total " deposits")))
+       (dom/span (str "Page " current-page " of " total " deposits")))
       (dom/li
        {:class "pull-right"}
        (dom/ul

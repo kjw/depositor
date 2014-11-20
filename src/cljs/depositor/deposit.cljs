@@ -335,7 +335,9 @@
        {:style {:margin-bottom "20px"}}
        (when (deposit-citations? deposit)
          (dom/button
-          {:class "btn btn-success btn-sm pull-right"}
+          {:class "btn btn-success btn-sm pull-right"
+           :data-target "#citation-deposit-modal"
+           :data-toggle "modal"}
           (util/icon :cloud-upload)
           " Deposit citations"))
        (dom/a
@@ -483,7 +485,7 @@
   (dom/div
    {:class "modal fade"
     :id "upload-modal"
-    :tabindex "-1"
+    :tab-index "-1"
     :role "dialog"
     :aria-hidden "true"}
    (dom/div
@@ -522,6 +524,30 @@
   (render-state
    [_ {:keys []}]
    (upload-modal app)))
+
+(defn citation-deposit-modal [app]
+  (dom/div
+   {:class "modal fade" :id "citation-deposit-modal" :tab-index "-1"
+    :role "dialog" :aria-hidden "true"}
+   (dom/div
+    {:class "modal-dialog"}
+    (dom/div
+     {:class "modal-content"}
+     (dom/div
+      {:class "modal-header"}
+      (dom/button {:type "button" :class "close" :data-dismiss "modal"}
+                  (dom/span {:aria-hidden "true"} (util/icon :remove))
+                  (dom/span {:class "sr-only"} "Close"))
+      (dom/h4 {:class "modal-title"} "Create a citations deposit"))
+     (dom/div
+      {:class "modal-body"})
+     (dom/div
+      {:class "modal-footer"}
+      (dom/button {:type "button" :class "btn btn-success"} "Create deposit"))))))
+      
+
+(defcomponent citation-deposit [app owner]
+  (render [_] (citation-deposit-modal app)))
    
 (when-let [e (.getElementById js/document "deposits")]
   (om/root deposit-list
@@ -535,6 +561,11 @@
 
 (when-let [e (.getElementById js/document "upload")]
   (om/root upload
+           page-state
+           {:target e}))
+
+(when-let [e (.getElementById js/document "citation-deposit")]
+  (om/root citation-deposit
            page-state
            {:target e}))
 

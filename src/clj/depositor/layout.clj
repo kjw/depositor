@@ -35,6 +35,7 @@
 (defn- header-links [req]
   [:div
    [:div#upload]
+   [:div#citation-deposit]
    [:ul.nav.navbar-nav]])
 
 (defn- header-account-info [req]
