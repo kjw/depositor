@@ -157,6 +157,14 @@ a, a:hover, a:visited {
     color: #bbb;
 }
 
+.sidebar-block li {
+    padding-top: .1em;
+}
+
+.sidebar-block {
+    padding-bottom: .3em;
+}
+
 body {
     font-family: "Raleway","Helvetica Neue",Helvetica,Arial,sans-serif;
 }

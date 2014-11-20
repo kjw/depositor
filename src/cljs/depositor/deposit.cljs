@@ -38,7 +38,8 @@
    "Deposit XML"})
 
 (def page-state
-  (atom {:deposits nil
+  (atom {:query {:rows 10}
+         :deposits nil
          :deposit {}
          :citations {}}))
 

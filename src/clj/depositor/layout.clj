@@ -77,24 +77,24 @@
     [:h4 "Deposits"]
     [:ul.list-unstyled
      [:li [:a {:href "/deposits/all"}
-           [:span.glyphicon.glyphicon-th.link-icon] "All"]]
+           [:h5 [:span.glyphicon.glyphicon-th.link-icon] "All"]]]
      [:li [:a {:href "/deposits/incomplete"}
-           [:span.glyphicon.glyphicon-repeat.link-icon] "In progress"]]
+           [:h5 [:span.glyphicon.glyphicon-repeat.link-icon] "In progress"]]]
      [:li [:a {:href "/deposits/finished"}
-           [:span.glyphicon.glyphicon-ok-circle.link-icon] "Finished"]]
+           [:h5 [:span.glyphicon.glyphicon-ok-circle.link-icon] "Finished"]]]
      [:li [:a {:href "/deposits/failed"}
-           [:span.glyphicon.glyphicon-remove-circle.link-icon] "Failed"]]]]
+           [:h5 [:span.glyphicon.glyphicon-remove-circle.link-icon] "Failed"]]]]]
    [:div.sidebar-block
     [:h4 "Member"]
     [:ul.list-unstyled
      [:li [:a {:href "/statistics"} 
-           [:span.glyphicon.glyphicon-stats.link-icon] "Statistics"]]]]
+           [:h5 [:span.glyphicon.glyphicon-stats.link-icon] "Statistics"]]]]]
    [:div.sidebar-block
     [:h4 "Account"]
     [:p.small "Signed in as " [:b (identity-name req :friendly false)]]
     [:ul.list-unstyled
      [:li [:a {:href "/permissions"}
-           [:span.glyphicon.glyphicon-tower.link-icon] "Permissions"]]]]])
+           [:h5 [:span.glyphicon.glyphicon-tower.link-icon] "Permissions"]]]]]])
 
 (defn- sidebar-layout [req contents]
   [:div.container
