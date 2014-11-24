@@ -93,20 +93,22 @@
         :autocomplete "off"}
        (:label r))))))
 
-(defn dropdown-selector [label options]
-  (dom/div
-   {:class "btn-group"}
-   (dom/button
-    {:type "button"
-     :class "btn btn-default btn-sm dropdown-toggle"
-     :data-toggle "dropdown"
-     :aria-expanded "false"}
-    (str label ": " (first options) " ")
-    (dom/span {:class "caret"}))
-   (dom/ul
-    {:class "dropdown-menu" :role "menu"}
-    (for [option (drop 1 options)]
-      (dom/li (dom/a {:href "#"} option))))))
+(defn dropdown-selector [label selected-value action options]
+  (let [selected (first (filter #(= (:value %) selected-value) options))
+        rest (filter #(not (= (:value %) (:value selected))) options)]
+    (dom/div
+     {:class "btn-group"}
+     (dom/button
+      {:type "button"
+       :class "btn btn-default btn-sm dropdown-toggle"
+       :data-toggle "dropdown"
+       :aria-expanded "false"}
+      (str label ": " (:label selected) " ")
+      (dom/span {:class "caret"}))
+     (dom/ul
+      {:class "dropdown-menu" :role "menu"}
+      (for [option rest]
+        (dom/li (dom/a {:href "#" :on-click #(action (:value option))} (:label option))))))))
 
 (defn format-percent [n]
   (str (->> n (* 100) (gs/format "%1.1f")) "%"))
@@ -117,4 +119,13 @@
 (defn friendly-date [n]
   (let [fmt (tf/formatter "dth MMMM, HH:mm")]
     (tf/unparse fmt (tc/from-long n))))
+
+
+
+
+
+
+
+
+
 

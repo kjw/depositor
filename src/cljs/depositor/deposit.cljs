@@ -4,6 +4,7 @@
             [om-tools.core :refer-macros [defcomponent]]
             [om.core :as om]
             [cljs.core.async :refer (<! >! put! chan sliding-buffer close!)]
+            [taoensso.sente :refer (cb-success?)]
             [depositor.util :as util]
             [depositor.ws :as ws :refer [send-and-update!]]))
 
@@ -39,6 +40,10 @@
 
 (def page-state
   (atom {:query {:rows 10}
+         :dropdowns {:status :all
+                     :test :all
+                     :type :all
+                     :sort-by :newest}
          :deposits nil
          :deposit {}
          :citations {}}))
@@ -366,22 +371,70 @@
 
 (defn change-deposits-page [app]
   (fn [page-number]
-    (send-and-update! [::deposits {:rows 10 :offset (* 10 (dec page-number))}]
-                      app
-                      :deposits)))
+    (let [old-query (-> app deref :query)
+          new-query (assoc old-query :offset (* (:rows old-query)
+                                                (dec page-number)))]
+      (om/update! app :query new-query)
+      (om/update! app :deposits nil)
+      (ws/send-and-update! [::deposits new-query] app :deposits))))
 
-(defn deposit-list-selectors []
+(defn change-deposits-filter [app k value]
+  (let [filter-val (if (= :all value) nil (name value))
+        old-query (-> app deref :query)
+        new-query (assoc-in old-query [:filter k] filter-val)]
+    (om/update! app [:dropdowns k] value)
+    (om/update! app :query new-query)
+    (om/update! app :deposits nil)
+    (ws/send-and-update! [::deposits new-query] app :deposits)))
+
+(defn change-deposits-search [app name]
+  (fn [value]
+    (let [old-query (-> app deref :query)
+          new-query (assoc old-query :query value)]
+      (om/update! app :query new-query)
+      (om/update! app :deposits nil)
+      (ws/send-and-update! [::deposits new-query] app :deposits))))
+
+(defn change-deposits-order [app order]
+  ())
+
+(defn deposit-list-selectors [app]
   (dom/ul
    {:class "list-inline"}
    (dom/li
-    (util/dropdown-selector "Status" ["All" "In progress" "Finished" "Failed"]))
+    (util/dropdown-selector
+     "Status"
+     (get-in app [:dropdowns :status])
+     (partial change-deposits-filter app :status)
+     [{:label "All" :value :all}
+      {:label "In progress" :value :submitted}
+      {:label "Finished" :value :completed}
+      {:label "Failed" :value :failed}]))
    (dom/li
-    (util/dropdown-selector "Type" ["All" "PDF" "Deposit XML" "Resource XML" "Patent Citations"]))
+    (util/dropdown-selector
+     "Type"
+     (get-in app [:dropdowns :type])
+     (partial change-deposits-filter app :type)
+     [{:label "All" :value :all}
+      {:label "PDF" :value "application/pdf"}
+      {:label "Deposit XML" :value "application/vnd.crossref.deposit+xml"}
+      {:label "Resource XML" :value "application/vnd.crossref.partial+xml"}]))
    (dom/li
-    (util/dropdown-selector "Test" ["All" "Yes" "No"]))
+    (util/dropdown-selector
+     "Test"
+     (get-in app [:dropdowns :test])
+     (partial change-deposits-filter app :test)
+     [{:label "All" :value :all}
+      {:label "Yes" :value :t}
+      {:label "No" :value :f}]))
    (dom/li
     {:class "pull-right"}
-    (util/dropdown-selector "Sort by" ["Newest" "Oldest"]))))
+    (util/dropdown-selector
+     "Sort by"
+     (get-in app [:dropdowns :sort-by])
+     nil
+     [{:label "Newest" :value nil}
+      {:label "Oldest" :value nil}]))))
 
 (defcomponent deposit-list [app owner]
   (init-state [_] {:open-chan (chan)
@@ -412,7 +465,7 @@
                  (not (nil? (:deposits app)))
                  (dom/div
                   {:class "fadein"}
-                  (deposit-list-selectors)
+                  (deposit-list-selectors app)
                   (dom/table {:class "table table-hover table-hover-pointer"}
                              (om/build-all
                               deposit-item
@@ -545,7 +598,6 @@
       {:class "modal-footer"}
       (dom/button {:type "button" :class "btn btn-success"} "Create deposit"))))))
       
-
 (defcomponent citation-deposit [app owner]
   (render [_] (citation-deposit-modal app)))
    

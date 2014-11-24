@@ -1,5 +1,6 @@
 (ns depositor.deposit
-  (:require [hiccup.core :refer [html]]
+  (:require [clojure.string :as string]
+            [hiccup.core :refer [html]]
             [compojure.core :refer [defroutes GET]]
             [org.httpkit.client :as hc]
             [clojure.data.json :as json]
@@ -22,11 +23,22 @@
    #(let [no-cest (string/replace % #"CEST" "EET")]
       (->> no-cest (tf/parse deposit-submit-time-format) tco/to-long))))
 
+(defn prepare-filters [filterm]
+  (->> filterm
+       (filter (fn [[n vs]] (not (nil? vs))))
+       (map (fn [[n vs]] (str (name n) ":" vs)))
+       (string/join ",")))
+
+(defn prepare-params [params]
+  (if (:filter params)
+    (update-in params [:filter] prepare-filters)
+    params))
+
 (defn get-deposits [{:keys [username password]} params]
   (update-in
       (-> "https://api.crossref.org/v1/deposits"
           (hc/get {:basic-auth [username password]
-                   :query-params params})
+                   :query-params (prepare-params params)})
           deref
           :body
           (json/read-str :key-fn keyword)
