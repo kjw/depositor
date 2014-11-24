@@ -30,9 +30,10 @@
        (string/join ",")))
 
 (defn prepare-params [params]
-  (if (:filter params)
-    (update-in params [:filter] prepare-filters)
-    params))
+  (let [prepared-filters (-> params :filter prepare-filters)]
+    (if (string/blank? prepared-filters)
+      (dissoc params :filter)
+      (assoc params :filter prepared-filters))))
 
 (defn get-deposits [{:keys [username password]} params]
   (update-in
