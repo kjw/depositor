@@ -39,11 +39,11 @@
    "Deposit XML"})
 
 (def page-state
-  (atom {:query {:rows 10}
+  (atom {:query {:rows 10 :sort "submitted" :order "desc"}
          :dropdowns {:status :all
                      :test :all
                      :type :all
-                     :sort-by :newest}
+                     :sort-by :desc}
          :deposits nil
          :deposit {}
          :citations {}}))
@@ -396,7 +396,12 @@
       (ws/send-and-update! [::deposits new-query] app :deposits))))
 
 (defn change-deposits-order [app order]
-  ())
+  (let [old-query (-> app deref :query)
+        new-query (assoc old-query :order (name order))]
+    (om/update! app [:dropdowns :sort-by] order)
+    (om/update! app :query new-query)
+    (om/update! app :deposits nil)
+    (ws/send-and-update! [::deposits new-query] app :deposits)))
 
 (defn deposit-list-selectors [app]
   (dom/ul
@@ -432,15 +437,15 @@
     (util/dropdown-selector
      "Sort by"
      (get-in app [:dropdowns :sort-by])
-     nil
-     [{:label "Newest" :value nil}
-      {:label "Oldest" :value nil}]))))
+     (partial change-deposits-order app)
+     [{:label "Newest" :value :desc}
+      {:label "Oldest" :value :asc}]))))
 
 (defcomponent deposit-list [app owner]
   (init-state [_] {:open-chan (chan)
                    :citation-chan (chan)})
   (will-mount [_]
-              (send-and-update! [::deposits {:rows 10}] app :deposits)
+              (send-and-update! [::deposits {:rows 10 :order "desc" :sort "submitted"}] app :deposits)
               (let [open-chan (om/get-state owner :open-chan)]
                 (go-loop [deposit (<! open-chan)]
                   (om/update! app :deposit deposit)
