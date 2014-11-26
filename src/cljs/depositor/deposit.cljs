@@ -8,20 +8,6 @@
             [depositor.util :as util]
             [depositor.ws :as ws :refer [send-and-update!]]))
 
-;; filter on:
-;; type
-;; status
-;; test?
-
-;; search on:
-;; doi search
-;; title search
-
-;; order by:
-;; deposit data asc, desc
-
-;; paging
-
 (def deposit-types
   {"application/pdf" 
    "PDF"
@@ -46,16 +32,9 @@
                      :sort-by :desc}
          :deposits nil
          :deposit {}
-         :citations {}}))
-
-;; status - completed failed submitted
-;; time of submission
-;; test?
-;; content type
-;; length
-;; (submission history)
-;; (submission errors)
-;; (dois)
+         :citations {}
+         :lookup {:text ""
+                  :result {}}}))
 
 (defn editing-citation-text [citations]
   (get-in citations [:list (:editing citations) :text]))
@@ -583,28 +562,79 @@
    [_ {:keys []}]
    (upload-modal app)))
 
-(defn citation-deposit-modal [app]
-  (dom/div
-   {:class "modal fade" :id "citation-deposit-modal" :tab-index "-1"
-    :role "dialog" :aria-hidden "true"}
-   (dom/div
-    {:class "modal-dialog"}
+(defn lookup-doi [app v lookup-chan]
+  (om/update! app [:lookup :text] v)
+  (put! lookup-chan v))
+
+(defn citation-deposit-modal [app lookup-chan]
+  (let [citation-count (-> app (get-in [:deposit :citations]) count)
+        matched-count (count
+                       (filter #(not (nil? (:match %)))
+                               (get-in app [:deposit :citations])))
+        lookup-result (get-in app [:lookup :result])]
     (dom/div
-     {:class "modal-content"}
+     {:class "modal fade" :id "citation-deposit-modal" :tab-index "-1"
+      :role "dialog" :aria-hidden "true"}
      (dom/div
-      {:class "modal-header"}
-      (dom/button {:type "button" :class "close" :data-dismiss "modal"}
-                  (dom/span {:aria-hidden "true"} (util/icon :remove))
-                  (dom/span {:class "sr-only"} "Close"))
-      (dom/h4 {:class "modal-title"} "Create a citations deposit"))
-     (dom/div
-      {:class "modal-body"})
-     (dom/div
-      {:class "modal-footer"}
-      (dom/button {:type "button" :class "btn btn-success"} "Create deposit"))))))
+      {:class "modal-dialog"}
+      (dom/div
+       {:class "modal-content"}
+       (dom/div
+        {:class "modal-header"}
+        (dom/button {:type "button" :class "close" :data-dismiss "modal"}
+                    (dom/span {:aria-hidden "true"} (util/icon :remove))
+                    (dom/span {:class "sr-only"} "Close"))
+        (dom/h4 {:class "modal-title"} "Create a citations deposit"))
+       (dom/div
+        {:class "modal-body"}
+        (dom/p
+         "Deposit these "
+         (dom/strong citation-count)
+         " "
+         (dom/strong (str "(" matched-count " matched)"))
+         " citations as the citation list for an existing DOI")
+        (dom/form
+         {:role "form" :style {:margin-top "2em"}}
+         (dom/div
+          {:class "form-group"}
+          (dom/input {:type "text" :class "form-control"
+                      :id "citation-deposit-doi" :placeholder "Enter DOI..."
+                      :value (get-in app [:lookup :text])
+                      :on-change #(lookup-doi app (.-value (.-target %)) lookup-chan)}))
+         (dom/div
+          {:class "form-group"}
+          (util/in-panel
+           (cond (nil? lookup-result)
+                 (util/loader)
+                 (empty? lookup-result)
+                 (dom/h3 {:class "text-danger"
+                          :style {:margin-left "auto" :margin-right "auto"}}
+                         (util/icon :ban-circle)
+                         " DOI not found")
+                 :else
+                 (match-details lookup-result))
+           :title "Resolves to"))))
+       (dom/div
+        {:class "modal-footer"}
+        (dom/button
+         (if (or (empty? lookup-result) (nil? lookup-result))
+           {:type "button" :class "btn btn-success" :disabled true}
+           {:type "button" :class "btn btn-success"})
+         "Create deposit")))))))
       
 (defcomponent citation-deposit [app owner]
-  (render [_] (citation-deposit-modal app)))
+  (init-state [_] {:lookup-chan (chan (sliding-buffer 1))})
+  (will-mount [_]
+              (let [lookup-chan (om/get-state owner :lookup-chan)]
+                (go-loop [text (<! lookup-chan)]
+                  (println text)
+                  (send-and-update!
+                   [::lookup {:text text}]
+                   app
+                   [:lookup :result])
+                  (recur (<! lookup-chan)))))
+  (render-state [_ {:keys [lookup-chan]}]
+                (citation-deposit-modal app lookup-chan)))
    
 (when-let [e (.getElementById js/document "deposits")]
   (om/root deposit-list

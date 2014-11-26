@@ -80,6 +80,18 @@
         :message
         :items)))
 
+(defn get-doi [doi-text]
+  (let [{:keys [body error status]}
+        (->> doi-text
+             (str "http://api.crossref.org/v1/works/")
+             hc/get
+             deref)]
+    (if (or error (not= 200 status))
+      {}
+      (-> body
+          (json/read-str :key-fn keyword)
+          :message))))
+
 (defn generate-deposit [{:keys [username password]}
                         {:keys [from-id doi citations]}]
   (-> "https://api.crossref.org/v1/deposits"
@@ -117,6 +129,10 @@
 (defmethod handle-socket-event ::generate-deposit
   [{:keys [ring-req ?reply-fn ?data]}]
   (-> ring-req identity-credentials (generate-deposit ?data) ?reply-fn))
+
+(defmethod handle-socket-event ::lookup
+  [{:keys [ring-req ?reply-fn ?data]}]
+  (-> ?data :text get-doi ?reply-fn))
     
 (defroutes deposit-routes
   (GET "/all" req (page-with-sidebar req (deposits-page :all)))

@@ -33,7 +33,7 @@
   (send! event
          (fn [reply]
            (when (cb-success? reply)
-             (om/update! app-state [k] reply)))))
+             (om/update! app-state k reply)))))
 
 (defn start-event-sender! []
   (go-loop [{:keys [event reply-fn]} (<! send-ch)]
