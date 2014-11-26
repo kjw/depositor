@@ -26,7 +26,7 @@
        authorization-routes
        landing-routes)
       (authenticate {:credential-fn crossref-credentials
-                     :workflows [(interactive-form :login-uri "/login")]})
+                     :workflows [(interactive-form :login-uri "/login" :redirect-on-auth? false)]})
       (wrap-defaults site-defaults)))
 
 (defn start []
