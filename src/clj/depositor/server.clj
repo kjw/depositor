@@ -1,7 +1,6 @@
 (ns depositor.server
   "Serve pages and handle web socket connections."
-  (:require [depositor.page :refer [page]]
-            [compojure.core :refer [GET POST defroutes routes context]]
+  (:require [compojure.core :refer [GET POST defroutes routes context]]
             [compojure.route :refer [resources]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [compojure.handler :refer [site]]
@@ -10,15 +9,13 @@
             [cemerick.friend :refer [wrap-authorize authenticate]]
             [cemerick.friend.workflows :refer [interactive-form]]
             [depositor.auth :refer [crossref-credentials authorization-routes]]
+            [depositor.landing :refer [landing-routes]]
             [depositor.stats :refer [stats-routes]]
             [depositor.deposit :refer [deposit-routes]]
             [depositor.event :refer [socket-routes] :as event]
             [depositor.permission :refer [permission-routes]]))
 
 (def server (atom nil))
-
-(defroutes base-routes 
-  (GET "/" [] (page)))
 
 (def all-routes
   (-> (routes
@@ -27,7 +24,7 @@
        (context "/permissions" [] (wrap-authorize permission-routes #{:user}))
        (context "/statistics" [] (wrap-authorize stats-routes #{:user}))
        authorization-routes
-       base-routes)
+       landing-routes)
       (authenticate {:credential-fn crossref-credentials
                      :workflows [(interactive-form :login-uri "/login")]})
       (wrap-defaults site-defaults)))
