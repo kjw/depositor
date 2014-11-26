@@ -57,7 +57,6 @@
          :roles (set (conj prefixes :user))}))))
 
 (defroutes authorization-routes
-  (GET "/login" req (login-page req))
-  (logout (ANY "/logout" [] (redirect "/"))))
+  (logout (ANY "/logout" [] (redirect "/login"))))
 
 
