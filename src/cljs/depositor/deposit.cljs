@@ -133,6 +133,12 @@
      "completed" (dom/span {:class "text-success"} (util/icon :ok-circle))
      "failed" (dom/span {:class "text-danger"} (util/icon :remove-circle)))))
 
+(defn deposit-status-small [deposit]
+  (condp = (:status deposit)
+     "submitted" (dom/span {:class "text-muted"} (util/icon :repeat))
+     "completed" (dom/span {:class "text-success"} (util/icon :ok-circle))
+     "failed" (dom/span {:class "text-danger"} (util/icon :remove-circle))))
+
 (defn deposit-info-row [label val]
   (dom/div
    {:class "row" :style {:font-size ".9em"}}
@@ -206,7 +212,13 @@
         {:href (str "https://api.crossref.org/v1/deposits/"
                     (:batch-id deposit)
                     "/data")}
-        (:filename deposit)))))))
+        (:filename deposit)))))
+   (dom/div
+    {:class "form-group"}
+    (dom/label {:class "col-sm-2 control-label"} "Created")
+    (dom/div
+     {:class "col-sm-10" :style {:margin-top "8px"}}
+     (dom/span (-> deposit :submitted-at util/friendly-date))))))
 
 (defn deposit-parent [deposit]
   (-> deposit :parent deposit-details))
@@ -279,10 +291,16 @@
   (dom/table
    {:class "table"}
    (dom/tr
-    (dom/th "Deposit ID"))
+    (dom/th "Status")
+    (dom/th "Deposit ID")
+    (dom/th "For DOI")
+    (dom/th "Created")
    (for [child (:children deposit)]
      (dom/tr
-      (dom/td (:batch-id child))))))
+      (dom/td (deposit-status-small child))
+      (dom/td (:batch-id child))
+      (dom/td (-> child :dois first))
+      (dom/td (-> child :submitted-at util/friendly-date)))))))
 
 (defn deposit-handoff [deposit]
   (dom/ul
