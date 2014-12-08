@@ -15,14 +15,41 @@
 (def deposit-submit-time-format
   (tf/formatter "EEE MMM dd HH:mm:ss ZZZ yyyy"))
 
+(declare get-deposit)
+
 ;; Below we choose an alternative +2GMT timezone to replace CEST,
 ;; which is not understood by clj-time.
 (defn reformat-submit-time [deposit]
   (update-in
    deposit
    [:submitted-at]
-   #(let [no-cest (string/replace % #"CEST" "EET")]
-      (->> no-cest (tf/parse deposit-submit-time-format) tco/to-long))))
+   #(let [no-cest-bst (string/replace % #"CEST|BST" "EET")]
+      (->> no-cest-bst (tf/parse deposit-submit-time-format) tco/to-long))))
+
+(defn expand-children [credentials deposit]
+  (if-not (:children deposit)
+    deposit
+    (update-in
+     deposit
+     [:children]
+     #(map (fn [bid] (get-deposit credentials bid :expand false)) %))))
+
+(defn expand-parent [credentials deposit]
+  (if-not (:parent deposit)
+    deposit
+    (update-in
+     deposit
+     [:parent]
+     #(get-deposit credentials % :expand false))))
+
+(defn prepare-deposit [deposit credentials
+                       & {:keys [expand] :or {expand true}}]
+  (if-not expand
+    (reformat-submit-time deposit)
+    (->> deposit
+         (expand-parent credentials)
+         (expand-children credentials)
+         reformat-submit-time)))
 
 (defn prepare-filters [filterm]
   (->> filterm
@@ -36,7 +63,7 @@
       (dissoc params :filter)
       (assoc params :filter prepared-filters))))
 
-(defn get-deposits [{:keys [username password]} params]
+(defn get-deposits [{:keys [username password] :as creds} params]
   (update-in
    (-> (env :api)
        (str "/v1/deposits")
@@ -47,18 +74,19 @@
        (json/read-str :key-fn keyword)
        :message)
     [:items]
-    #(map reformat-submit-time %)))
+    #(map prepare-deposit % (repeat creds))))
 
-(defn get-deposit [{:keys [username password]} id]
+(defn get-deposit [{:keys [username password] :as creds} id
+                   & {:keys [expand] :or {expand true}}]
   (-> (str (env :api) "/v1/deposits/" id)
       (hc/get {:basic-auth [username password]})
       deref
       :body
       (json/read-str :key-fn keyword)
       :message
-      reformat-submit-time))
+      (prepare-deposit creds :expand expand)))
 
-(defn put-deposit [{:keys [username password]}
+(defn put-deposit [{:keys [username password] :as creds}
                    {:keys [url filename content-type]}]
   (let [{:keys [headers status body error]}
         (-> (str (env :api) "/v1/deposits")
@@ -70,7 +98,7 @@
     (-> body
         (json/read-str :key-fn keyword)
         :message
-        reformat-submit-time)))
+        (prepare-deposit creds))))
 
 (defn get-citation-matches [{:keys [text]}]
   (let [clean-text (string/replace text #"(?U)[^\w]+" " ")]
@@ -94,7 +122,7 @@
           (json/read-str :key-fn keyword)
           :message))))
 
-(defn generate-deposit [{:keys [username password]}
+(defn generate-deposit [{:keys [username password] :as creds}
                         {:keys [parent test doi citations] :or [test true]}]
   (let [{:keys [body]}
         (-> (str (env :api) "/v1/deposits")
@@ -106,7 +134,7 @@
     (-> body
         (json/read-str :key-fn keyword)
         :message
-        reformat-submit-time)))
+        (prepare-deposit creds))))
 
 (defn deposits-page [t]
   [:div {:style "margin-top: 30px"}

@@ -181,36 +181,35 @@
 (defn deposit-details [deposit]
   (dom/form
    {:class "form-horizontal"}
+   (when (:title deposit)
+     (dom/div
+      {:class "form-group"}
+      (dom/label {:class "col-sm-2 control-label"} "Title")
+      (dom/div
+       {:class "col-sm-10" :style {:margin-top "8px"}}
+       (dom/span (:title deposit)))))
    (dom/div
     {:class "form-group"}
-    (dom/label {:class "col-sm-3 control-label"} "Deposit ID")
+    (dom/label {:class "col-sm-2 control-label"} "Deposit ID")
     (dom/div
-     {:class "col-sm-9" :style {:margin-top "8px"}}
+     {:class "col-sm-10" :style {:margin-top "8px"}}
      (dom/a
       {:href (str "https://api.crossref.org/v1/deposits/" (:batch-id deposit))}
       (:batch-id deposit))))
    (when (:filename deposit)
      (dom/div
       {:class "form-group"}
-      (dom/label {:class "col-sm-3 control-label"} "Filename")
+      (dom/label {:class "col-sm-2 control-label"} "Filename")
       (dom/div
-       {:class "col-sm-9" :style {:margin-top "8px"}}
+       {:class "col-sm-10" :style {:margin-top "8px"}}
        (dom/a
         {:href (str "https://api.crossref.org/v1/deposits/"
                     (:batch-id deposit)
                     "/data")}
-        (:filename deposit)))))
-   (when (:parent deposit)
-     (dom/div
-      {:class "form-group"}
-      (dom/label {:class "col-sm-3 control-label"} "From PDF Deposit")
-      (dom/div
-       {:class "col-sm-9" :style {:margin-top "8px"}}
-       (dom/a
-        {:href (str "https://api.crossref.org/v1/deposits/"
-                    (:parent deposit)
-                    "/data")}
-        (:parent deposit)))))))
+        (:filename deposit)))))))
+
+(defn deposit-parent [deposit]
+  (-> deposit :parent deposit-details))
 
 (defn deposit-dois [deposit]
   (dom/table
@@ -235,9 +234,11 @@
           (dom/a {:href (str "http://search.crossref.org/?q=" doi)}
                  (util/icon :search) " Metadata Search")))))))))
 
+(defn deposit-title-text [deposit]
+  (or (:title deposit) (:filename deposit) (:batch-id deposit)))
+
 (defn deposit-title [deposit]
-  (dom/h4
-   (or (:title deposit) (:filename deposit) (:batch-id deposit))))
+  (dom/h4 (deposit-title-text deposit)))
 
 (defn deposit-citations [deposit citation-chan]
   (dom/table
@@ -281,7 +282,7 @@
     (dom/th "Deposit ID"))
    (for [child (:children deposit)]
      (dom/tr
-      (dom/td child)))))
+      (dom/td (:batch-id child))))))
 
 (defn deposit-handoff [deposit]
   (dom/ul
@@ -353,9 +354,9 @@
        (dom/a
         {:href "#" :on-click #(put! open-chan {})}
         (util/icon :arrow-left) " Back"))
-      (if (:title deposit)
-        (util/in-panel (deposit-details deposit) :title (:title deposit))
-        (util/in-panel (deposit-details deposit)))
+      (util/in-panel (deposit-details deposit) :title (deposit-title-text deposit))
+      (when (:parent deposit)
+        (util/in-panel (deposit-parent deposit) :title "Generated From PDF Deposit"))
       (util/tabs tabs-with-active)))))
     
 (defcomponent deposit-item [deposit owner]
