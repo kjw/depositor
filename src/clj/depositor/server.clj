@@ -26,13 +26,14 @@
        authorization-routes
        landing-routes)
       (authenticate {:credential-fn crossref-credentials
-                     :workflows [(interactive-form :login-uri "/login" :redirect-on-auth? false)]})
+                     :workflows [(interactive-form :login-uri "/login"
+                                                   :redirect-on-auth? false)]})
       (wrap-defaults site-defaults)))
 
 (defn start []
   (event/start)
   (reset! server (run-server #'all-routes
-                             {:port (env :server-port)
+                             {:port (-> :server-port env Integer/parseInt)
                               :thread (env :server-threads)
                               :queue-size (env :server-queue-size)})))
 
@@ -44,7 +45,7 @@
 (defn -main []
   (event/start)
   (run-server #'all-routes
-              {:port (env :server-port)
+              {:port (-> :server-port env Integer/parseInt)
                :thread (env :server-threads)
                :queue-size (env :server-queue-size)
                :join? false}))

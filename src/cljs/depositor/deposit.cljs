@@ -199,7 +199,18 @@
         {:href (str "https://api.crossref.org/v1/deposits/"
                     (:batch-id deposit)
                     "/data")}
-        (:filename deposit)))))))
+        (:filename deposit)))))
+   (when (:parent deposit)
+     (dom/div
+      {:class "form-group"}
+      (dom/label {:class "col-sm-3 control-label"} "From PDF Deposit")
+      (dom/div
+       {:class "col-sm-9" :style {:margin-top "8px"}}
+       (dom/a
+        {:href (str "https://api.crossref.org/v1/deposits/"
+                    (:parent deposit)
+                    "/data")}
+        (:parent deposit)))))))
 
 (defn deposit-dois [deposit]
   (dom/table
@@ -209,7 +220,8 @@
    (dom/tbody
     (for [doi (:dois deposit)]
       (dom/tr
-       (dom/td doi)
+       (dom/td
+        (dom/a {:href (str "http://dx.doi.org/" doi)} doi))
        (dom/td
         (dom/ul
          {:class "list-inline small text-right"}
@@ -221,10 +233,7 @@
                  (util/icon :file) " XML"))
          (dom/li
           (dom/a {:href (str "http://search.crossref.org/?q=" doi)}
-                 (util/icon :search) " Metadata Search"))
-         (dom/li
-          (dom/a {:href (str "http://dx.doi.org/" doi)}
-                 (util/icon :new-window) " Resolve DOI")))))))))
+                 (util/icon :search) " Metadata Search")))))))))
 
 (defn deposit-title [deposit]
   (dom/h4
@@ -265,6 +274,15 @@
         (:message msg)))
       (dom/td (when (:related-doi msg) (:related-doi msg)))))))
 
+(defn deposit-children [deposit]
+  (dom/table
+   {:class "table"}
+   (dom/tr
+    (dom/th "Deposit ID"))
+   (for [child (:children deposit)]
+     (dom/tr
+      (dom/td child)))))
+
 (defn deposit-handoff [deposit]
   (dom/ul
    (dom/li
@@ -280,6 +298,7 @@
 (defn deposit-submission? [deposit] (not (nil? (:submission deposit))))
 (defn deposit-citations? [deposit] (not (nil? (:citations deposit))))
 (defn deposit-handoff? [deposit] (not (nil? (:handoff deposit))))
+(defn deposit-children? [deposit] (not (nil? (:children deposit))))
 
 (defcomponent deposit [deposit owner]
   (render-state
@@ -309,7 +328,13 @@
           (when (deposit-handoff? deposit)
             [{:name :handoff
               :label "Handoff Status"
-              :content (deposit-handoff deposit)}]))
+              :content (deposit-handoff deposit)}])
+          (when (deposit-children? deposit)
+            [{:name :children
+              :label (dom/span
+                      "Citation Deposits "
+                      (dom/span {:class "badge"} (-> deposit :children count)))
+              :content (deposit-children deposit)}]))
          tabs-with-active (concat
                            [(assoc (first tabs) :active true)]
                            (drop 1 tabs))]
@@ -321,7 +346,8 @@
          (dom/button
           {:class "btn btn-success btn-sm pull-right"
            :data-target "#citation-deposit-modal"
-           :data-toggle "modal"}
+           :data-toggle "modal"
+           :on-click #()}
           (util/icon :cloud-upload)
           " Deposit citations"))
        (dom/a
@@ -566,7 +592,7 @@
   (om/update! app [:lookup :text] v)
   (put! lookup-chan v))
 
-(defn citation-deposit-modal [app lookup-chan]
+(defn citation-deposit-modal [app lookup-chan generate-chan]
   (let [citation-count (-> app (get-in [:deposit :citations]) count)
         matched-count (count
                        (filter #(not (nil? (:match %)))
@@ -619,22 +645,30 @@
         (dom/button
          (if (or (empty? lookup-result) (nil? lookup-result))
            {:type "button" :class "btn btn-success" :disabled true}
-           {:type "button" :class "btn btn-success"})
+           {:type "button" :class "btn btn-success"
+            :on-click #(put! generate-chan {:test true
+                                            :doi (get-in @app [:lookup :text])
+                                            :parent (get-in @app [:deposit :batch-id])
+                                            :citations (get-in @app [:deposit :citations])})})
          "Create deposit")))))))
       
 (defcomponent citation-deposit [app owner]
-  (init-state [_] {:lookup-chan (chan (sliding-buffer 1))})
+  (init-state [_] {:lookup-chan (chan (sliding-buffer 1))
+                   :generate-chan (chan)})
   (will-mount [_]
-              (let [lookup-chan (om/get-state owner :lookup-chan)]
+              (let [lookup-chan (om/get-state owner :lookup-chan)
+                    generate-chan (om/get-state owner :generate-chan)]
                 (go-loop [text (<! lookup-chan)]
                   (println text)
                   (send-and-update!
                    [::lookup {:text text}]
                    app
                    [:lookup :result])
-                  (recur (<! lookup-chan)))))
-  (render-state [_ {:keys [lookup-chan]}]
-                (citation-deposit-modal app lookup-chan)))
+                  (recur (<! lookup-chan)))
+                (go-loop [citation-deposit (<! generate-chan)]
+                  (ws/send! [::generate-deposit citation-deposit] println))))
+  (render-state [_ {:keys [lookup-chan generate-chan]}]
+                (citation-deposit-modal app lookup-chan generate-chan)))
    
 (when-let [e (.getElementById js/document "deposits")]
   (om/root deposit-list

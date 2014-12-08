@@ -12,8 +12,8 @@
    [:div.row
     [:div.col-xs-12.col-md-5.col-md-offset-3
      [:img {:src "img/logo.png" :style "width:20em; margin-top: 5em;"}]
-     [:h3 {:style "margin-top: .4em;"} "depositor"]
-     [:p.lead.muted {:style "margin-top: 2em;"} "Deposit scholarly content with CrossRef"]
+     [:h3 {:style "margin-top: .4em;"} "Linking Console"]
+     [:p.lead.muted {:style "margin-top: 2em;"} "Deposit scholarly metadata with CrossRef"]
      [:form {:action "/login" :method "POST" :style "margin-top: 4em;"}
       [:h5 "Sign in"]
       (hidden-field

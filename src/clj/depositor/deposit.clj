@@ -7,6 +7,7 @@
             [clojure.string :as string]
             [depositor.event :refer [handle-socket-event]]
             [depositor.generate :refer [citation-deposit]]
+            [environ.core :refer [env]]
             [clj-time.format :as tf]
             [clj-time.coerce :as tco]
             [depositor.layout :refer [identity-credentials page-with-sidebar]]))
@@ -37,18 +38,19 @@
 
 (defn get-deposits [{:keys [username password]} params]
   (update-in
-      (-> "https://api.crossref.org/v1/deposits"
-          (hc/get {:basic-auth [username password]
-                   :query-params (prepare-params params)})
-          deref
-          :body
-          (json/read-str :key-fn keyword)
-          :message)
+   (-> (env :api)
+       (str "/v1/deposits")
+       (hc/get {:basic-auth [username password]
+                :query-params (prepare-params params)})
+       deref
+       :body
+       (json/read-str :key-fn keyword)
+       :message)
     [:items]
     #(map reformat-submit-time %)))
 
 (defn get-deposit [{:keys [username password]} id]
-  (-> (str "https://api.crossref.org/v1/deposits/" id)
+  (-> (str (env :api) "/v1/deposits/" id)
       (hc/get {:basic-auth [username password]})
       deref
       :body
@@ -59,7 +61,7 @@
 (defn put-deposit [{:keys [username password]}
                    {:keys [url filename content-type]}]
   (let [{:keys [headers status body error]}
-        (-> "https://api.crossref.org/v1/deposits"
+        (-> (str (env :api) "/v1/deposits")
             (hc/post {:basic-auth [username password]
                       :query-params {:url url
                                      :filename filename}
@@ -72,7 +74,7 @@
 
 (defn get-citation-matches [{:keys [text]}]
   (let [clean-text (string/replace text #"(?U)[^\w]+" " ")]
-    (-> "http://api.crossref.org/v1/works"
+    (-> (str (env :api) "/v1/works")
         (hc/get {:query-params {:query clean-text :rows 4}})
         deref
         :body
@@ -83,7 +85,7 @@
 (defn get-doi [doi-text]
   (let [{:keys [body error status]}
         (->> doi-text
-             (str "http://api.crossref.org/v1/works/")
+             (str (env :api) "/v1/works/")
              hc/get
              deref)]
     (if (or error (not= 200 status))
@@ -93,16 +95,18 @@
           :message))))
 
 (defn generate-deposit [{:keys [username password]}
-                        {:keys [from-id doi citations]}]
-  (-> "https://api.crossref.org/v1/deposits"
-      (hc/post {:basic-auth [username password]
-                :query-params {:link from-id}
-                :body (citation-deposit doi citations)})
-      deref
-      :body
-      (json/read-str :key-fn keyword)
-      :message
-      reformat-submit-time))
+                        {:keys [parent test doi citations] :or [test true]}]
+  (let [{:keys [body]}
+        (-> (str (env :api) "/v1/deposits")
+            (hc/post {:basic-auth [username password]
+                      :query-params {:parent parent :test test}
+                      :headers {"Content-Type" "application/vnd.crossref.partial+xml"}
+                      :body (citation-deposit doi citations)})
+            deref)]
+    (-> body
+        (json/read-str :key-fn keyword)
+        :message
+        reformat-submit-time)))
 
 (defn deposits-page [t]
   [:div {:style "margin-top: 30px"}

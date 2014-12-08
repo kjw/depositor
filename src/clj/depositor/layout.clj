@@ -67,7 +67,7 @@
      [:a.navbar-brand {:href "#"}
       [:span
        [:img {:src "/img/logo.png" :style "width:160px;margin-top:-6px;"}]
-       [:span {:style "font-size: .9em;"} "&nbsp;depositor"]]]]
+       [:span {:style "font-size: .9em;"} "&nbsp;Linking Console"]]]]
     [:div.collapse.navbar-collapse
      (header-links req)
      (header-account-info req)]]])
