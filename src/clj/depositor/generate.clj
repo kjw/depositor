@@ -7,7 +7,7 @@
   [:head
     [:doi_batch_id]
     [:depositor
-     [:name "CrossRef Depositor"]
+     [:depositor_name "CrossRef Linking Console"]
      [:email_address]]])
 
 (defn citation-key [citation]
