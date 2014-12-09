@@ -155,13 +155,12 @@
    {:style {:margin-top "10px" :margin-right "15px"}}
    (when-not (-> deposit :dois nil?)
      (deposit-info-row "DOIs" (-> deposit :dois count)))
-   (when-not (-> deposit :citations nil?)
-     (deposit-info-row "Citations" (-> deposit :citations count)))
-   (when-not (-> deposit :citations nil?)
-     (deposit-info-row
-      "Matched"
-      (count
-       (filter #(-> % :match nil? not) (:citations deposit)))))
+   (when (and (= "application/pdf" (:content-type deposit))
+              (= "completed" (:status deposit)))
+     (deposit-info-row "Citations" (:citation-count deposit)))
+   (when (and (= "application/pdf" (:content-type deposit))
+              (= "completed" (:status deposit)))
+     (deposit-info-row "Matched" (:matched-citation-count deposit)))
    (when-not (-> deposit :length nil?)
      (deposit-info-row
       "Size"
@@ -361,6 +360,7 @@
                              (drop 1 tabs))]
        (dom/div
         {:class "fadein"}
+        (dom/h3 {:style {:margin-bottom "1.5em;"}} (deposit-title-text deposit))
         (when (deposit-citations? deposit)
           (dom/div
            {:style {:margin-bottom "20px"}}
@@ -369,8 +369,8 @@
              :data-target "#citation-deposit-modal"
              :data-toggle "modal"}
             (util/icon :cloud-upload)
-            " Deposit citations")))
-        (util/in-panel (deposit-details deposit) :title (deposit-title-text deposit))
+            " Create citations deposit")))
+        (util/in-panel (deposit-details deposit) :title "Details")
         (when (:parent deposit)
           (util/in-panel (deposit-parent deposit) :title "Generated From PDF Deposit"))
         (util/tabs tabs-with-active))))))
