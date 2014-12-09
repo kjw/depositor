@@ -322,7 +322,7 @@
 (defcomponent deposit [deposit owner]
   (render-state
    [_ {:keys [open-chan citation-chan]}]
-   (if (nil? deposit)
+   (if (empty? deposit)
      (util/loader)
      (let [tabs
            (concat
