@@ -200,7 +200,7 @@
     (dom/div
      {:class "col-sm-10" :style {:margin-top "8px"}}
      (dom/a
-      {:href (str "https://api.crossref.org/v1/deposits/" (:batch-id deposit))}
+      {:href (str "/deposits/" (:batch-id deposit))}
       (:batch-id deposit))))
    (when (:filename deposit)
      (dom/div
@@ -298,7 +298,7 @@
    (for [child (:children deposit)]
      (dom/tr
       (dom/td (deposit-status-small child))
-      (dom/td (:batch-id child))
+      (dom/td (dom/a {:href (str "/deposits/" (:batch-id child))} (:batch-id child)))
       (dom/td (-> child :dois first))
       (dom/td (-> child :submitted-at util/friendly-date)))))))
 
@@ -322,65 +322,63 @@
 (defcomponent deposit [deposit owner]
   (render-state
    [_ {:keys [open-chan citation-chan]}]
-   (let [tabs
-         (concat
-          (when (deposit-dois? deposit)
-            [{:name :dois
-              :label (dom/span
-                      "DOIs in Deposit "
-                      (dom/span
-                       {:class "badge"}
-                       (count (:dois deposit))))
-              :content (deposit-dois deposit)}])
-          (when (deposit-citations? deposit)
-            [{:name :citations
-              :label (dom/span
-                      "Extracted Citations "
-                      (dom/span
-                       {:class "badge"}
-                       (count (:citations deposit))))
-              :content (deposit-citations deposit citation-chan)}])
-          (when (deposit-submission? deposit)
-            [{:name :submission
-              :label "Submission Log"
-              :content (deposit-submission deposit)}])
-          (when (deposit-handoff? deposit)
-            [{:name :handoff
-              :label "Handoff Status"
-              :content (deposit-handoff deposit)}])
-          (when (deposit-children? deposit)
-            [{:name :children
-              :label (dom/span
-                      "Citation Deposits "
-                      (dom/span {:class "badge"} (-> deposit :children count)))
-              :content (deposit-children deposit)}]))
-         tabs-with-active (concat
-                           [(assoc (first tabs) :active true)]
-                           (drop 1 tabs))]
-     (dom/div
-      {:class "fadein"}
-      (dom/div
-       {:style {:margin-bottom "20px"}}
-       (when (deposit-citations? deposit)
-         (dom/button
-          {:class "btn btn-success btn-sm pull-right"
-           :data-target "#citation-deposit-modal"
-           :data-toggle "modal"
-           :on-click #()}
-          (util/icon :cloud-upload)
-          " Deposit citations"))
-       (dom/a
-        {:href "#" :on-click #(put! open-chan {})}
-        (util/icon :arrow-left) " Back"))
-      (util/in-panel (deposit-details deposit) :title (deposit-title-text deposit))
-      (when (:parent deposit)
-        (util/in-panel (deposit-parent deposit) :title "Generated From PDF Deposit"))
-      (util/tabs tabs-with-active)))))
+   (if (nil? deposit)
+     (util/loader)
+     (let [tabs
+           (concat
+            (when (deposit-dois? deposit)
+              [{:name :dois
+                :label (dom/span
+                        "DOIs in Deposit "
+                        (dom/span
+                         {:class "badge"}
+                         (count (:dois deposit))))
+                :content (deposit-dois deposit)}])
+            (when (deposit-citations? deposit)
+              [{:name :citations
+                :label (dom/span
+                        "Extracted Citations "
+                        (dom/span
+                         {:class "badge"}
+                         (count (:citations deposit))))
+                :content (deposit-citations deposit citation-chan)}])
+            (when (deposit-submission? deposit)
+              [{:name :submission
+                :label "Submission Log"
+                :content (deposit-submission deposit)}])
+            (when (deposit-handoff? deposit)
+              [{:name :handoff
+                :label "Handoff Status"
+                :content (deposit-handoff deposit)}])
+            (when (deposit-children? deposit)
+              [{:name :children
+                :label (dom/span
+                        "Citation Deposits "
+                        (dom/span {:class "badge"} (-> deposit :children count)))
+                :content (deposit-children deposit)}]))
+           tabs-with-active (concat
+                             [(assoc (first tabs) :active true)]
+                             (drop 1 tabs))]
+       (dom/div
+        {:class "fadein"}
+        (when (deposit-citations? deposit)
+          (dom/div
+           {:style {:margin-bottom "20px"}}
+           (dom/button
+            {:class "btn btn-success btn-sm pull-right"
+             :data-target "#citation-deposit-modal"
+             :data-toggle "modal"}
+            (util/icon :cloud-upload)
+            " Deposit citations")))
+        (util/in-panel (deposit-details deposit) :title (deposit-title-text deposit))
+        (when (:parent deposit)
+          (util/in-panel (deposit-parent deposit) :title "Generated From PDF Deposit"))
+        (util/tabs tabs-with-active))))))
     
 (defcomponent deposit-item [deposit owner]
   (render-state [_ {:keys [open-chan]}]
                 (dom/tr
-                 {:on-click #(put! open-chan deposit)}
+                 {:on-click #(set! (.-location js/window) (str "/deposits/" (:batch-id deposit)))}
                  (dom/td
                   (dom/div
                    {:class "row"}
@@ -695,9 +693,12 @@
            {:target e}))
 
 (when-let [e (.getElementById js/document "deposit")]
+  (ws/send! [::deposit {:id (.-className e)}]
+            (fn [reply]
+              (swap! page-state assoc :deposit reply)))
   (om/root deposit
            page-state
-           {:target e}))
+           {:target e :path [:deposit]}))
 
 (when-let [e (.getElementById js/document "upload")]
   (om/root upload

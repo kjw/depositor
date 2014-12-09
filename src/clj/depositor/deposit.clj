@@ -136,6 +136,11 @@
         :message
         (prepare-deposit creds))))
 
+(defn deposit-page [batch-id]
+  [:div {:style "margin-top: 30px"}
+   [:div#deposits-page
+    [(keyword (str "div#deposit." batch-id))]]])
+
 (defn deposits-page [t]
   [:div {:style "margin-top: 30px"}
    [:div#deposits-page
@@ -170,7 +175,8 @@
   (GET "/all" req (page-with-sidebar req (deposits-page :all)))
   (GET "/finished" req (page-with-sidebar req (deposits-page :finished)))
   (GET "/failed" req (page-with-sidebar req (deposits-page :failed)))
-  (GET "/incomplete" req (page-with-sidebar req (deposits-page :incomplete))))
+  (GET "/incomplete" req (page-with-sidebar req (deposits-page :incomplete)))
+  (GET "/:batch-id" [batch-id :as req] (page-with-sidebar req (deposit-page batch-id))))
 
 
 

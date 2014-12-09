@@ -120,12 +120,3 @@
   (let [fmt (tf/formatter "dth MMMM, HH:mm")]
     (tf/unparse fmt (tc/from-long n))))
 
-
-
-
-
-
-
-
-
-
