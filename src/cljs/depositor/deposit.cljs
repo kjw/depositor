@@ -155,7 +155,7 @@
     {:class "col-md-5"}
     (dom/span val))))
 
-(defn deposit-doi-count [deposit]
+(defn deposit-counts [deposit]
   (dom/div
    {:style {:margin-top "10px" :margin-right "15px"}}
    (when-not (-> deposit :dois nil?)
@@ -166,6 +166,8 @@
    (when (and (= "application/pdf" (:content-type deposit))
               (= "completed" (:status deposit)))
      (deposit-info-row "Matched" (:matched-citation-count deposit)))
+   (when-not (-> deposit :children nil?)
+     (deposit-info-row "Deposits" (-> deposit :children count)))
    (when-not (-> deposit :length nil?)
      (deposit-info-row
       "Size"
@@ -178,6 +180,10 @@
     (dom/li
      (dom/span {:class "label label-default"}
                (-> deposit :content-type deposit-types)))
+    (when (:parent deposit)
+      (dom/li
+       (dom/span {:class "label label-default"}
+                 "From PDF Citations")))
     (when (:test deposit)
       (dom/li
        (dom/span {:class "label label-warning"} "Test"))))))
@@ -394,7 +400,7 @@
                             (deposit-labels deposit)
                             (deposit-created deposit))
                    (dom/div {:class "col-md-3"}
-                            (deposit-doi-count deposit)))))))
+                            (deposit-counts deposit)))))))
 
 (defn change-deposits-page [app]
   (fn [page-number]
