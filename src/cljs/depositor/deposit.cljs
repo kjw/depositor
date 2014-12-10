@@ -24,6 +24,8 @@
    "application/vnd.crossref.deposit+xml"
    "Deposit XML"})
 
+(def citation-chan (chan))
+
 (def initial-deposit-status-filter
   (if-let [e (.getElementById js/document "deposits-status")]
     (keyword (.-className e))
@@ -42,20 +44,23 @@
                   :result {}}}))
 
 (defn editing-citation-text [citations]
-  (get-in citations [:list (:editing citations) :text]))
+  (get-in citations [:list (:position citations) :text]))
+
+(defn editing-citation-number [citations]
+  (get-in citations [:list (:position citations) :number]))
 
 (defn editing-citation-doi [citations]
-  (get-in citations [:list (:editing citations) :match :DOI]))
+  (get-in citations [:list (:position citations) :match :DOI]))
 
 (defn change-citation-text [citations s query-chan]
   (om/update! citations
-              [:list (:editing @citations) :text]
+              [:list (:position @citations) :text]
               s)
   (put! query-chan s))
 
 (defn change-citation-match [citations match]
   (om/update! citations
-              [:list (:editing @citations) :match]
+              [:list (:position @citations) :match]
               match))
 
 (defn match-details [match]
@@ -83,6 +88,11 @@
    {:class "fadein"}
    (dom/form
     {:role "form"}
+    (dom/div
+     {:class "form-group"}
+     (dom/label {:for "citation-number"} "Citation number")
+     (dom/input {:type "text" :class "form-control"
+                 :value (editing-citation-number citations)}))
     (dom/div
      {:class "form-group"}
      (dom/label {:for "citation-text"} "Citation text")
@@ -273,9 +283,10 @@
             (dom/th "Citation text")
             (dom/th "Matched to")))
    (dom/tbody
-    (for [c (:citations deposit)]
+    (for [pos (range (-> deposit :citations count))
+          :let [c (-> deposit :citations (nth pos))]]
       (dom/tr
-       {:on-click #(put! citation-chan {:list (:citations @deposit) :editing 0})}
+       {:on-click #(put! citation-chan {:list (:citations @deposit) :position pos})}
        (dom/td
         (when (:number c) (dom/h5 (str (:number c) "."))))
        (dom/td (:text c))
@@ -332,62 +343,77 @@
 (defn deposit-handoff? [deposit] (not (nil? (:handoff deposit))))
 (defn deposit-children? [deposit] (not (nil? (:children deposit))))
 
-(defcomponent deposit [deposit owner]
+(defcomponent deposit [app owner]
+  (init-state [_] {:citation-chan (chan)})
+  (will-mount [_]
+               (let [citation-chan (om/get-state owner :citation-chan)]
+                (go-loop [citations (<! citation-chan)]
+                  (om/update! app :citations citations)
+                  (recur (<! citation-chan)))))
   (render-state
    [_ {:keys [open-chan citation-chan]}]
-   (if (empty? deposit)
-     (util/loader)
-     (let [tabs
-           (concat
-            (when (deposit-dois? deposit)
-              [{:name :dois
-                :label (dom/span
-                        "DOIs in Deposit "
-                        (dom/span
-                         {:class "badge"}
-                         (count (:dois deposit))))
-                :content (deposit-dois deposit)}])
-            (when (deposit-citations? deposit)
-              [{:name :citations
-                :label (dom/span
-                        "Extracted Citations "
-                        (dom/span
-                         {:class "badge"}
-                         (count (:citations deposit))))
-                :content (deposit-citations deposit citation-chan)}])
-            (when (deposit-submission? deposit)
-              [{:name :submission
-                :label "Submission Log"
-                :content (deposit-submission deposit)}])
-            (when (deposit-handoff? deposit)
-              [{:name :handoff
-                :label "Handoff Status"
-                :content (deposit-handoff deposit)}])
-            (when (deposit-children? deposit)
-              [{:name :children
-                :label (dom/span
-                        "Citation Deposits "
-                        (dom/span {:class "badge"} (-> deposit :children count)))
-                :content (deposit-children deposit)}]))
-           tabs-with-active (concat
-                             [(assoc (first tabs) :active true)]
-                             (drop 1 tabs))]
-       (dom/div
-        {:class "fadein"}
-        (dom/h3 {:style {:margin-bottom "1.5em;"}} (deposit-title-text deposit))
-        (when (deposit-citations? deposit)
-          (dom/div
-           {:style {:margin-bottom "20px"}}
-           (dom/button
-            {:class "btn btn-success btn-sm pull-right"
-             :data-target "#citation-deposit-modal"
-             :data-toggle "modal"}
-            (util/icon :cloud-upload)
-            " Create citations deposit")))
-        (util/in-panel (deposit-details deposit) :title "Details")
-        (when (:parent deposit)
-          (util/in-panel (deposit-parent deposit) :title "Generated From PDF Deposit"))
-        (util/tabs tabs-with-active))))))
+   (cond
+    (not (empty? (:citations app)))
+    (om/build citation
+              (:citations app)
+              {:init-state {:citation-chan citation-chan}})
+
+    (-> app :deposit empty? not)
+    (let [deposit (:deposit app)
+          tabs
+          (concat
+           (when (deposit-dois? deposit)
+             [{:name :dois
+               :label (dom/span
+                       "DOIs in Deposit "
+                       (dom/span
+                        {:class "badge"}
+                        (count (:dois deposit))))
+               :content (deposit-dois deposit)}])
+           (when (deposit-citations? deposit)
+             [{:name :citations
+               :label (dom/span
+                       "Extracted Citations "
+                       (dom/span
+                        {:class "badge"}
+                        (count (:citations deposit))))
+               :content (deposit-citations deposit citation-chan)}])
+           (when (deposit-submission? deposit)
+             [{:name :submission
+               :label "Submission Log"
+               :content (deposit-submission deposit)}])
+           (when (deposit-handoff? deposit)
+             [{:name :handoff
+               :label "Handoff Status"
+               :content (deposit-handoff deposit)}])
+           (when (deposit-children? deposit)
+             [{:name :children
+               :label (dom/span
+                       "Citation Deposits "
+                       (dom/span {:class "badge"} (-> deposit :children count)))
+               :content (deposit-children deposit)}]))
+          tabs-with-active (concat
+                            [(assoc (first tabs) :active true)]
+                            (drop 1 tabs))]
+      (dom/div
+       {:class "fadein"}
+       (dom/h3 {:style {:margin-bottom "1.5em;"}} (deposit-title-text deposit))
+       (when (deposit-citations? deposit)
+         (dom/div
+          {:style {:margin-bottom "20px"}}
+          (dom/button
+           {:class "btn btn-success btn-sm pull-right"
+            :data-target "#citation-deposit-modal"
+            :data-toggle "modal"}
+           (util/icon :cloud-upload)
+           " Create citations deposit")))
+       (util/in-panel (deposit-details deposit) :title "Details")
+       (when (:parent deposit)
+         (util/in-panel (deposit-parent deposit) :title "Generated From PDF Deposit"))
+       (util/tabs tabs-with-active)))
+
+    :else
+    (util/loader))))
     
 (defcomponent deposit-item [deposit owner]
   (render-state [_ {:keys [open-chan]}]
@@ -478,8 +504,7 @@
       {:label "Oldest" :value :asc}]))))
 
 (defcomponent deposit-list [app owner]
-  (init-state [_] {:open-chan (chan)
-                   :citation-chan (chan)})
+  (init-state [_] {:open-chan (chan)})
   (will-mount [_]
               (let [query (if (= initial-deposit-status-filter :all)
                             {:rows 10 :sort "submitted" :order "desc"}
@@ -489,17 +514,10 @@
               (let [open-chan (om/get-state owner :open-chan)]
                 (go-loop [deposit (<! open-chan)]
                   (om/update! app :deposit deposit)
-                  (recur (<! open-chan))))
-              (let [citation-chan (om/get-state owner :citation-chan)]
-                (go-loop [citations (<! citation-chan)]
-                  (om/update! app :citations citations)
-                  (recur (<! citation-chan)))))
+                  (recur (<! open-chan)))))
   (render-state [_ {:keys [open-chan citation-chan]}]
                 (cond
-                 (not (empty? (:citations app)))
-                 (om/build citation
-                           (:citations app)
-                           {:init-state {:citation-chan citation-chan}})
+                 
                  
                  (not (empty? (:deposit app)))
                  (om/build deposit
@@ -691,7 +709,7 @@
         (dom/button
          (if (or (empty? lookup-result) (nil? lookup-result))
            {:type "button" :class "btn btn-success" :disabled true}
-           {:type "button" :class "btn btn-success"
+           {:type "button" :class "btn btn-success" :data-dismiss "modal"
             :on-click #(put! generate-chan
                              {:test true
                               :doi (get-in @app [:lookup :text])
@@ -725,12 +743,12 @@
            {:target e}))
 
 (when-let [e (.getElementById js/document "deposit")]
-  (ws/send! [::deposit {:id (.-className e)}]
+  (ws/send! [::deposit {:id (.-className e)}] 
             (fn [reply]
               (swap! page-state assoc :deposit reply)))
   (om/root deposit
            page-state
-           {:target e :path [:deposit]}))
+           {:target e}))
 
 (when-let [e (.getElementById js/document "upload")]
   (om/root upload
