@@ -122,19 +122,27 @@
           (json/read-str :key-fn keyword)
           :message))))
 
+;; httpkit client does not drop the body on following a redirect,
+;; so for now we manually follow the redirect.
+
 (defn generate-deposit [{:keys [username password] :as creds}
                         {:keys [parent test doi citations] :or [test true]}]
-  (let [{:keys [body]}
+  (let [{:keys [headers status]}
         (-> (str (env :api) "/v1/deposits")
             (hc/post {:basic-auth [username password]
                       :query-params {:parent parent :test test}
                       :headers {"Content-Type" "application/vnd.crossref.partial+xml"}
-                      :body (citation-deposit doi citations)})
+                      :body (citation-deposit doi citations)
+                      :follow-redirects false})
             deref)]
-    (-> body
-        (json/read-str :key-fn keyword)
-        :message
-        (prepare-deposit creds))))
+    (when (#{301 302 303 307 308} status)
+      (-> (str (env :api) (:location headers))
+          (hc/get {:basic-auth [username password]})
+          deref
+          :body
+          (json/read-str :key-fn keyword)
+          :message
+          (prepare-deposit creds)))))
 
 (defn deposit-page [batch-id]
   [:div {:style "margin-top: 30px"}

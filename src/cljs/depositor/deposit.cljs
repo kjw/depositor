@@ -257,7 +257,10 @@
                  (util/icon :search) " Metadata Search")))))))))
 
 (defn deposit-title-text [deposit]
-  (or (:title deposit) (:filename deposit) (:batch-id deposit)))
+  (or (:title deposit)
+      (:filename deposit)
+      (when (= (-> deposit :dois count) 1) (-> deposit :dois first))
+      (:batch-id deposit)))
 
 (defn deposit-title [deposit]
   (dom/h4 (deposit-title-text deposit)))
@@ -624,6 +627,17 @@
   (om/update! app [:lookup :text] v)
   (put! lookup-chan v))
 
+(defn summarize-citation-list [citations]
+  (let [c (map
+           #(if-not (:match %)
+              %
+              {:match {:DOI (get-in % [:match :DOI])}
+       :text (:text %)
+               :number (:number %)})
+           citations)]
+    (println c)
+    c))
+
 (defn citation-deposit-modal [app lookup-chan generate-chan]
   (let [citation-count (-> app (get-in [:deposit :citations]) count)
         matched-count (count
@@ -678,10 +692,13 @@
          (if (or (empty? lookup-result) (nil? lookup-result))
            {:type "button" :class "btn btn-success" :disabled true}
            {:type "button" :class "btn btn-success"
-            :on-click #(put! generate-chan {:test true
-                                            :doi (get-in @app [:lookup :text])
-                                            :parent (get-in @app [:deposit :batch-id])
-                                            :citations (get-in @app [:deposit :citations])})})
+            :on-click #(put! generate-chan
+                             {:test true
+                              :doi (get-in @app [:lookup :text])
+                              :parent (get-in @app [:deposit :batch-id])
+                              :citations (-> @app
+                                             (get-in [:deposit :citations])
+                                             summarize-citation-list)})})
          "Create deposit")))))))
       
 (defcomponent citation-deposit [app owner]

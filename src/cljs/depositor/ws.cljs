@@ -38,6 +38,6 @@
 (defn start-event-sender! []
   (go-loop [{:keys [event reply-fn]} (<! send-ch)]
     (println event)
-    (chsk-send! event 5000 reply-fn)
+    (chsk-send! event 30000 reply-fn)
     (recur (<! send-ch))))
 

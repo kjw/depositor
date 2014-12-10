@@ -1,7 +1,8 @@
 (ns depositor.generate
   "Generate citation deposit XML for an existing citation
    deposit."
-  (:require [hiccup.core :as hiccup]))
+  (:require [hiccup.core :as hiccup]
+            [clojure.data.xml :as xml]))
 
 (defn head []
   [:head
@@ -34,5 +35,6 @@
         [:doi_citations
          [:doi doi]
          (citation-list citations)]]]
-      hiccup/html))
+      xml/sexp-as-element
+      xml/emit-str))
       
