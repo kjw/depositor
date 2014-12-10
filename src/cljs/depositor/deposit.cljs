@@ -24,9 +24,14 @@
    "application/vnd.crossref.deposit+xml"
    "Deposit XML"})
 
+(def initial-deposit-status-filter
+  (if-let [e (.getElementById js/document "deposits-status")]
+    (keyword (.-className e))
+    :all))
+
 (def page-state
   (atom {:query {:rows 10 :sort "submitted" :order "desc"}
-         :dropdowns {:status :all
+         :dropdowns {:status initial-deposit-status-filter
                      :test :all
                      :type :all
                      :sort-by :desc}
@@ -467,7 +472,11 @@
   (init-state [_] {:open-chan (chan)
                    :citation-chan (chan)})
   (will-mount [_]
-              (send-and-update! [::deposits {:rows 10 :order "desc" :sort "submitted"}] app :deposits)
+              (let [query (if (= initial-deposit-status-filter :all)
+                            {:rows 10 :sort "submitted" :order "desc"}
+                            {:rows 10 :sort "submitted" :order "desc"
+                             :filter {:status (name initial-deposit-status-filter)}})]
+                (ws/send-and-update! [::deposits query] app :deposits))
               (let [open-chan (om/get-state owner :open-chan)]
                 (go-loop [deposit (<! open-chan)]
                   (om/update! app :deposit deposit)

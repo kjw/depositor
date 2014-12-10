@@ -144,6 +144,7 @@
 (defn deposits-page [t]
   [:div {:style "margin-top: 30px"}
    [:div#deposits-page
+    [(keyword (str "span#deposits-status." (name t)))]
     [:div#deposits]]])
   
 (defmethod handle-socket-event ::deposits
@@ -173,9 +174,9 @@
     
 (defroutes deposit-routes
   (GET "/all" req (page-with-sidebar req (deposits-page :all)))
-  (GET "/finished" req (page-with-sidebar req (deposits-page :finished)))
+  (GET "/finished" req (page-with-sidebar req (deposits-page :completed)))
   (GET "/failed" req (page-with-sidebar req (deposits-page :failed)))
-  (GET "/incomplete" req (page-with-sidebar req (deposits-page :incomplete)))
+  (GET "/incomplete" req (page-with-sidebar req (deposits-page :submitted)))
   (GET "/:batch-id" [batch-id :as req] (page-with-sidebar req (deposit-page batch-id))))
 
 
