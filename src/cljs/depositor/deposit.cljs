@@ -119,11 +119,11 @@
      (dom/div
       {:class "pull-right"}
       (dom/p
-       (dom/button {:class "btn btn-default"
-                    :style {:margin-right "5px"}
-                    :on-click #(put! citation-chan {})}
-                   "Discard changes")
-       (dom/button {:class "btn btn-success"} "Save")))))))
+       (dom/a {:class "btn btn-default"
+               :style {:margin-right "5px"}
+               :on-click #(put! citation-chan {})}
+              "Discard changes")
+       (dom/a {:class "btn btn-success"} "Save")))))))
 
 (defcomponent citation [citations owner]
   (init-state [_] {:query-chan (chan (sliding-buffer 1))})
@@ -349,7 +349,11 @@
                (let [citation-chan (om/get-state owner :citation-chan)]
                 (go-loop [citations (<! citation-chan)]
                   (om/update! app :citations citations)
-                  (recur (<! citation-chan)))))
+                  (recur (<! citation-chan))))
+               (ws/send-and-update!
+                [::deposit {:id (.-className (.getElementById js/document "deposit"))}]
+                app
+                :deposit))
   (render-state
    [_ {:keys [open-chan citation-chan]}]
    (cond
@@ -401,7 +405,7 @@
        (when (deposit-citations? deposit)
          (dom/div
           {:style {:margin-bottom "20px"}}
-          (dom/button
+          (dom/a
            {:class "btn btn-success btn-sm pull-right"
             :data-target "#citation-deposit-modal"
             :data-toggle "modal"}
@@ -706,7 +710,7 @@
            :title "Resolves to"))))
        (dom/div
         {:class "modal-footer"}
-        (dom/button
+        (dom/a
          (if (or (empty? lookup-result) (nil? lookup-result))
            {:type "button" :class "btn btn-success" :disabled true}
            {:type "button" :class "btn btn-success" :data-dismiss "modal"
@@ -743,9 +747,6 @@
            {:target e}))
 
 (when-let [e (.getElementById js/document "deposit")]
-  (ws/send! [::deposit {:id (.-className e)}] 
-            (fn [reply]
-              (swap! page-state assoc :deposit reply)))
   (om/root deposit
            page-state
            {:target e}))
