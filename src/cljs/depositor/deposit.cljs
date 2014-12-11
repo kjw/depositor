@@ -24,8 +24,6 @@
    "application/vnd.crossref.deposit+xml"
    "Deposit XML"})
 
-(def citation-chan (chan))
-
 (def initial-deposit-status-filter
   (if-let [e (.getElementById js/document "deposits-status")]
     (keyword (.-className e))
@@ -83,7 +81,7 @@
      (dom/h1 {:class clz}
              (util/icon icon)))))
 
-(defn citation-view [citations citation-chan query-chan]
+(defn citation-view [citations citation-chan save-citations-chan query-chan]
   (dom/div
    {:class "fadein"}
    (dom/form
@@ -110,7 +108,7 @@
       (dom/tbody
        (for [result (:results citations)]
          (dom/tr
-          {:on-click #(change-citation-match citations result)}
+          {:on-click #(change-citation-match citations @result)}
           (dom/td (match-selector
                    :selected (= (:DOI result)
                                 (editing-citation-doi citations))))
@@ -123,7 +121,9 @@
                :style {:margin-right "5px"}
                :on-click #(put! citation-chan {})}
               "Discard changes")
-       (dom/a {:class "btn btn-success"} "Save")))))))
+       (dom/a {:class "btn btn-success"
+               :on-click #(put! save-citations-chan (:list @citations))}
+              "Save")))))))
 
 (defcomponent citation [citations owner]
   (init-state [_] {:query-chan (chan (sliding-buffer 1))})
@@ -137,8 +137,11 @@
                    citations
                    :results)
                   (recur (<! query-chan)))))
-  (render-state [_ {:keys [citation-chan query-chan]}]
-                (citation-view citations citation-chan query-chan)))
+  (render-state [_ {:keys [citation-chan query-chan save-citations-chan]}]
+                (citation-view citations
+                               citation-chan
+                               save-citations-chan
+                               query-chan)))
 
 (defn deposit-status [deposit]
   (dom/h1
@@ -329,13 +332,17 @@
 (defn deposit-handoff [deposit]
   (dom/ul
    (dom/li
-    (str "Status: " (get-in deposit [:handoff :status])))
+    (str "Status: "
+         (get-in deposit [:handoff :status])))
    (dom/li
-    (str "Status updated at: " (util/friendly-date (get-in deposit [:handoff :timestamp]))))
+    (str "Status updated at: "
+         (util/friendly-date (get-in deposit [:handoff :timestamp]))))
    (dom/li
-    (str "Try count: " (get-in deposit [:handoff :try-count])))
+    (str "Try count: "
+         (get-in deposit [:handoff :try-count])))
    (dom/li
-    (str "Next try in (if applicable): " (/ (get-in deposit [:handoff :delay-millis]) 1000) " seconds"))))
+    (str "Next try in (if applicable): "
+         (/ (get-in deposit [:handoff :delay-millis]) 1000) " seconds"))))
 
 (defn deposit-dois? [deposit] (not (nil? (:dois deposit))))
 (defn deposit-submission? [deposit] (not (nil? (:submission deposit))))
@@ -343,24 +350,46 @@
 (defn deposit-handoff? [deposit] (not (nil? (:handoff deposit))))
 (defn deposit-children? [deposit] (not (nil? (:children deposit))))
 
+(defn save-citations [app citations citation-chan]
+  (let [id (get-in @app [:deposit :batch-id])]
+    (ws/send!
+     [::citations {:id id :citations citations}]
+     (fn [reply]
+       (println reply)
+       (if (and (cb-success? reply) (= (:status reply) :completed))
+         (do
+           (println "success")
+           (om/update! app [:deposit :citations] citations)
+           (put! citation-chan {}))
+         (do
+           (println "error")
+           (put! citation-chan {})))))))
+
 (defcomponent deposit [app owner]
-  (init-state [_] {:citation-chan (chan)})
-  (will-mount [_]
-               (let [citation-chan (om/get-state owner :citation-chan)]
-                (go-loop [citations (<! citation-chan)]
-                  (om/update! app :citations citations)
-                  (recur (<! citation-chan))))
-               (ws/send-and-update!
-                [::deposit {:id (.-className (.getElementById js/document "deposit"))}]
-                app
-                :deposit))
+  (init-state [_] {:citation-chan (chan) :save-citations-chan (chan)})
+  (will-mount
+   [_]
+   (let [citation-chan (om/get-state owner :citation-chan)
+         save-citations-chan (om/get-state owner :save-citations-chan)]
+     (go-loop [citations (<! citation-chan)]
+       (om/update! app :citations citations)
+       (recur (<! citation-chan)))
+     (go-loop [citations (<! save-citations-chan)]
+       (save-citations app citations citation-chan)
+       (recur (<! save-citations-chan))))
+   (ws/send-and-update!
+    [::deposit {:id (.-className (.getElementById js/document "deposit"))}]
+    app
+    :deposit))
   (render-state
-   [_ {:keys [open-chan citation-chan]}]
+   [_ {:keys [open-chan citation-chan
+              save-citations-chan]}]
    (cond
     (not (empty? (:citations app)))
     (om/build citation
               (:citations app)
-              {:init-state {:citation-chan citation-chan}})
+              {:init-state {:citation-chan citation-chan
+                            :save-citations-chan save-citations-chan}})
 
     (-> app :deposit empty? not)
     (let [deposit (:deposit app)

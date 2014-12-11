@@ -144,6 +144,19 @@
           :message
           (prepare-deposit creds)))))
 
+(defn put-citations [{:keys [username password]}
+                     {:keys [id citations]}]
+  (let [{:keys [body status]}
+        (-> (str (env :api) "/v1/deposits/" id)
+            (hc/post {:basic-auth [username password]
+                      :headers {"Content-Type" "application/json"}
+                      :body (-> citations json/write-str)
+                      :follow-redirects false})
+            deref)]
+    (if (#{200 201} status)
+      {:status :completed}
+      {:status :failed})))
+
 (defn deposit-page [batch-id]
   [:div {:style "margin-top: 30px"}
    [:div#deposits-page
@@ -171,6 +184,10 @@
 (defmethod handle-socket-event ::citation-match
   [{:keys [?reply-fn ?data]}]
   (-> ?data get-citation-matches ?reply-fn))
+
+(defmethod handle-socket-event ::citations
+  [{:keys [ring-req ?reply-fn ?data]}]
+  (-> ring-req identity-credentials (put-citations ?data) ?reply-fn))
 
 (defmethod handle-socket-event ::generate-deposit
   [{:keys [ring-req ?reply-fn ?data]}]
