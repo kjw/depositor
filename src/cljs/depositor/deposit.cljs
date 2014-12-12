@@ -56,10 +56,16 @@
               s)
   (put! query-chan s))
 
+(defn change-citation-number [citations s]
+  (om/update! citations [:list (:position @citations) :number] s))
+
 (defn change-citation-match [citations match]
   (om/update! citations
               [:list (:position @citations) :match]
               match))
+
+(defn clear-citation-match [citations]
+  (om/update! citations [:list (:position @citations) :match] nil))
 
 (defn match-details [match]
   (dom/div
@@ -90,7 +96,9 @@
      {:class "form-group"}
      (dom/label {:for "citation-number"} "Citation number")
      (dom/input {:type "text" :class "form-control"
-                 :value (editing-citation-number citations)}))
+                 :value (editing-citation-number citations)
+                 :on-change #(change-citation-number citations
+                                                     (.-value (.-target %)))}))
     (dom/div
      {:class "form-group"}
      (dom/label {:for "citation-text"} "Citation text")
@@ -107,12 +115,15 @@
       {:class "table table-hover table-hover-pointer"}
       (dom/tbody
        (for [result (:results citations)]
-         (dom/tr
-          {:on-click #(change-citation-match citations @result)}
-          (dom/td (match-selector
-                   :selected (= (:DOI result)
-                                (editing-citation-doi citations))))
-          (dom/td (match-details result)))))))
+         (if (= (:DOI result) (editing-citation-doi citations))
+           (dom/tr
+            {:on-click #(clear-citation-match citations)}
+            (dom/td (match-selector :selected true))
+            (dom/td (match-details result)))
+           (dom/tr
+            {:on-click #(change-citation-match citations @result)}
+            (dom/td (match-selector :selected false))
+            (dom/td (match-details result))))))))
     (dom/p
      (dom/div
       {:class "pull-right"}
