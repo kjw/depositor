@@ -12,8 +12,8 @@
    [:div.row
     [:div.col-xs-12.col-md-5.col-md-offset-3
      [:img {:src "img/logo.png" :style "width:20em; margin-top: 5em;"}]
-     [:h3 {:style "margin-top: .4em;"} "Linking Console"]
-     [:p.lead.muted {:style "margin-top: 2em;"} "Deposit scholarly metadata with CrossRef"]
+     [:h3 {:style "margin-top: .4em;"} "Linking Console " [:span.small "Beta"]]
+     [:p.lead.muted {:style "margin-top: 2em;"} "Deposit metadata with CrossRef"]
      [:form {:action "/login" :method "POST" :style "margin-top: 4em;"}
       [:h5 "Sign in"]
       (hidden-field
@@ -36,7 +36,7 @@
    [:div.row {:style "padding-top: 3em; padding-bottom: 3em; border-top: 3px solid 3FC073; background-color: #eee; margin-top: 4em;"}
     [:div.col-md-2.col-md-offset-3
      [:h4 "Citation Extraction"]
-     [:p "Extract citations from PDFs, link them to DOIs and deposit as citation lists."]]
+     [:p "Extract references from PDFs, link them to DOIs and deposit as citation lists."]]
     [:div.col-md-2
      [:h4 "Track Your Deposits"]
      [:p "Track manually uploaded XML and PDFs and find errors."]]
