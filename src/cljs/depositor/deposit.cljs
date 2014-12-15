@@ -618,7 +618,8 @@
                                :content-type "application/pdf"
                                :filename (:filename blob)}]
                              (partial add-local-deposit app (notify/add-message :processing)))))
-     :class "btn btn-block btn-success btn-lg"}
+     :class "btn btn-block btn-success btn-lg"
+     :data-dismiss "modal"}
     (util/icon :upload)
     " Upload PDFs")))
 
@@ -651,7 +652,8 @@
                                :content-type "application/vnd.crossref.any+xml"
                                :filename (:filename blob)}]
                              (partial add-local-deposit app (notify/add-message :processing)))))
-     :class "btn btn-block btn-success btn-lg"}
+     :class "btn btn-block btn-success btn-lg"
+     :data-dismiss "modal"}
     (util/icon :upload)
     " Upload XML")))
 
