@@ -644,7 +644,7 @@
     {:type "button"
      :style {:margin-top "40px"}
      :on-click (file-picker
-                #js ["application/xml"]
+                #js ["application/xml" "text/xml"]
                 #(doseq [blob (js->clj % :keywordize-keys true)]
                    (ws/send! [::deposit-link
                               {:url (:url blob)

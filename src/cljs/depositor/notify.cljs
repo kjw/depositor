@@ -56,8 +56,8 @@
     (dom/div
      {:class "col-md-3 fadein fadeout"
       :style {:border-color "#dddddd" :border-top-left-radius ".5em"
-              :border-top "1px solid" :border-left "1px solid"
-              :border-right "1px solid" :z-index "999999"
+              :border-top "1px solid #dddddd" :border-left "1px solid #dddddd"
+              :border-right "1px solid #dddddd" :z-index "999999"
               :background-color "#FFFFFF" :position "fixed"
               :bottom "0px" :border-top-right-radius ".5em"}}
      (for [[type messages] grouped-messages]
