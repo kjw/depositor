@@ -601,12 +601,12 @@
   (om/transact! app [:deposits :items] #(into [deposit] %)))
 
 (defn pdf-upload [app]
-  (dom/div {:style {:margin-top "20px"}}
-   (dom/h4
+  (dom/div {:style {:margin-top "50px"}}
+   (dom/span {:class "lead"}
     "Extract the reference list from a PDF and add to an existing DOI.")
    (dom/button
     {:type "button"
-     :style {:margin-top "30px"}
+     :style {:margin-top "40px"}
      :on-click (file-picker
                 #js ["application/pdf"]
                 #(doseq [blob (js->clj % :keywordize-keys true)]
@@ -628,18 +628,29 @@
 
 (defn xml-upload [app]
   (dom/div
-   (dom/p
-    "Upload CrossRef XML to register or update DOIs. The"
-    " XML should conform to either the"
-    (dom/a {:href ""} " full deposit")
-    " schema or the"
-    (dom/a {:href ""} " resource deposit")
-    "schema." )
-   (dom/button {:type "button"
-                :on-click (file-picker #js ["text/xml" "application/xml"] nil)
-                :class "btn btn-primary btn-lg"}
-               (util/icon :upload)
-               " Upload CrossRef XML")))
+   {:style {:margin-top "50px"}}
+   (dom/span
+    {:class "lead"}
+    "Upload CrossRef XML to register or update DOI metadata. The XML "
+    " should conform to either the "
+    (dom/a {:href ""} "full deposit")
+    " schema or the "
+    (dom/a {:href ""} "resource deposit")
+    " schema.")
+   (dom/button
+    {:type "button"
+     :style {:margin-top "40px"}
+     :on-click (file-picker
+                #js ["text/xml"]
+                #(doseq [blob (js->clj % :keywordize-keys true)]
+                   (ws/send! [::deposit-link
+                              {:url (:url blob)
+                               :content-type "text/xml"
+                               :filename (:filename blob)}]
+                             (partial add-local-deposit app))))
+     :class "btn btn-block btn-success btn-lg"}
+    (util/icon :upload)
+    " Upload XML")))
 
 (defn upload-modal [app]
   (dom/div
@@ -669,10 +680,7 @@
          :content (pdf-upload app)}
         {:name :xml
          :label "CrossRef XML"
-         :content (xml-upload app)}
-        {:name :doi-list
-         :label "DOI List"
-         :content (doi-list-upload app)}]))
+         :content (xml-upload app)}]))
      (dom/div
       {:class "modal-footer"}
       (dom/button {:type "button"

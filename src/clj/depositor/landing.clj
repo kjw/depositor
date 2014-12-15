@@ -27,9 +27,11 @@
          :value (get-in req [:params :username])}]]
       (if (login-failed? req)
         [:div.form-group.has-error
-         [:input.form-control {:style "width: 20em;" :type "password" :name "password" :placeholder "Password"}]]
+         [:input.form-control {:style "width: 20em;" :type "password"
+                               :name "password" :placeholder "Password"}]]
         [:div.form-group
-         [:input.form-control {:style "width: 20em;" :type "password" :name "password" :placeholder "Password"}]])
+         [:input.form-control {:style "width: 20em;" :type "password"
+                               :name "password" :placeholder "Password"}]])
       [:button.btn.btn-default
        [:span.glyphicon.glyphicon-log-in]
        " Sign in"]]]]
