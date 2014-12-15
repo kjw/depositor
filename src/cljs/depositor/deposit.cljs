@@ -6,6 +6,7 @@
             [cljs.core.async :refer (<! >! put! chan sliding-buffer close!)]
             [taoensso.sente :refer (cb-success?)]
             [depositor.util :as util]
+            [depositor.notify :as notify]
             [depositor.ws :as ws :refer [send-and-update!]]))
 
 (def deposit-types
@@ -362,11 +363,12 @@
 (defn deposit-children? [deposit] (not (nil? (:children deposit))))
 
 (defn save-citations [app citations citation-chan]
-  (let [id (get-in @app [:deposit :batch-id])]
+  (let [id (get-in @app [:deposit :batch-id])
+        nid (notify/add-message :saving)]
     (ws/send!
      [::citations {:id id :citations citations}]
      (fn [reply]
-       (println reply)
+       (notify/finish-message nid)
        (if (and (cb-success? reply) (= (:status reply) :completed))
          (do
            (println "success")
@@ -597,8 +599,9 @@
                          "GOOGLE_DRIVE" "GMAIL" "URL" "FTP" "WEBDAV"]}
      #(success-fn %))))
 
-(defn add-local-deposit [app deposit]
-  (om/transact! app [:deposits :items] #(into [deposit] %)))
+(defn add-local-deposit [app message-id deposit]
+  (om/transact! app [:deposits :items] #(into [deposit] %))
+  (notify/finish-message message-id))
 
 (defn pdf-upload [app]
   (dom/div {:style {:margin-top "50px"}}
@@ -614,7 +617,7 @@
                               {:url (:url blob)
                                :content-type "application/pdf"
                                :filename (:filename blob)}]
-                             (partial add-local-deposit app))))
+                             (partial add-local-deposit app (notify/add-message :processing)))))
      :class "btn btn-block btn-success btn-lg"}
     (util/icon :upload)
     " Upload PDFs")))
@@ -641,13 +644,13 @@
     {:type "button"
      :style {:margin-top "40px"}
      :on-click (file-picker
-                #js ["text/xml"]
+                #js ["application/xml"]
                 #(doseq [blob (js->clj % :keywordize-keys true)]
                    (ws/send! [::deposit-link
                               {:url (:url blob)
-                               :content-type "text/xml"
+                               :content-type "application/vnd.crossref.any+xml"
                                :filename (:filename blob)}]
-                             (partial add-local-deposit app))))
+                             (partial add-local-deposit app (notify/add-message :processing)))))
      :class "btn btn-block btn-success btn-lg"}
     (util/icon :upload)
     " Upload XML")))
@@ -778,14 +781,16 @@
               (let [lookup-chan (om/get-state owner :lookup-chan)
                     generate-chan (om/get-state owner :generate-chan)]
                 (go-loop [text (<! lookup-chan)]
-                  (println text)
                   (send-and-update!
                    [::lookup {:text text}]
                    app
                    [:lookup :result])
                   (recur (<! lookup-chan)))
                 (go-loop [citation-deposit (<! generate-chan)]
-                  (ws/send! [::generate-deposit citation-deposit] println))))
+                  (let [nid (notify/add-message :creating)]
+                    (ws/send! [::generate-deposit citation-deposit]
+                              (fn [_] (notify/finish-message nid)))
+                    (recur (<! generate-chan))))))
   (render-state [_ {:keys [lookup-chan generate-chan]}]
                 (citation-deposit-modal app lookup-chan generate-chan)))
    

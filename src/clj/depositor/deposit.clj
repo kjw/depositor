@@ -5,6 +5,7 @@
             [org.httpkit.client :as hc]
             [clojure.data.json :as json]
             [clojure.string :as string]
+            [clojure.java.io :refer [reader]]
             [depositor.event :refer [handle-socket-event]]
             [depositor.generate :refer [citation-deposit]]
             [environ.core :refer [env]]

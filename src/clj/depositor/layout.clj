@@ -44,7 +44,7 @@
              :data-target "#upload-modal"
              :data-toggle "modal"}
          [:span.glyphicon.glyphicon-upload] " Upload"]]
-   [:li [:a {:href "#"} [:span.glyphicon.glyphicon-list] " Notifications"]]
+   ;;[:li [:a {:href "#"} [:span.glyphicon.glyphicon-list] " Notifications"]]
    [:li.dropdown
     [:a.dropdown-toggle 
      {:href "#" :data-toggle "dropdown"}
