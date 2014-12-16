@@ -29,10 +29,13 @@
                  [javax.servlet/servlet-api "2.5"]]
 
   :plugins [[lein-cljsbuild "1.0.3"]
+            [org.danielsz/lein-runit "0.1.0-SNAPSHOT"]
             [lein-environ "1.0.0"]
             [com.cemerick/austin "0.1.5"]]
 
   :main depositor.server
+
+  :runit {:app-root "/opt" :service-root "/etc/sv"}
 
   :profiles {:dev {:env {:server-port 3000
                          :server-threads 2
