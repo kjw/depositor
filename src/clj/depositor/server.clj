@@ -1,5 +1,6 @@
 (ns depositor.server
   "Serve pages and handle web socket connections."
+  (:gen-class)
   (:require [compojure.core :refer [GET POST defroutes routes context]]
             [compojure.route :refer [resources]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]

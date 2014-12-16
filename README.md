@@ -28,13 +28,17 @@ The CrossRef Linking Console.
 
     lein cljsbuild once production
 
-3) Prepare the project for runit:
+3) Generate an uber jar (for runit to run):
+
+    lein uberjar
+
+4) Prepare the project for runit:
 
     lein with-profile +production runit
     cd target
 	./commit.sh
 
-4) Restart or start the server:
+5) Restart or start the server:
 
     sv restart depositor
 
