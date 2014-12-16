@@ -17,6 +17,10 @@
 
 (def server (atom nil))
 
+(defn env-int [k]
+  (let [v (env k)]
+    (if (number? v) (int v) (Integer/parseInt v))))
+
 (def all-routes
   (-> (routes
        (context "/socket" [] (wrap-authorize socket-routes #{:user}))
@@ -33,9 +37,9 @@
 (defn start []
   (event/start)
   (reset! server (run-server #'all-routes
-                             {:port (-> :server-port env Integer/parseInt)
-                              :thread (env :server-threads)
-                              :queue-size (env :server-queue-size)})))
+                             {:port (env-int :server-port)
+                              :thread (env-int :server-threads)
+                              :queue-size (env-int :server-queue-size)})))
 
 (defn stop [] 
   (when-not (nil? @server)
@@ -45,7 +49,7 @@
 (defn -main []
   (event/start)
   (run-server #'all-routes
-              {:port (-> :server-port env Integer/parseInt)
-               :thread (env :server-threads)
-               :queue-size (env :server-queue-size)
+              {:port (env-int :server-port)
+               :thread (env-int :server-threads)
+               :queue-size (env-int :server-queue-size)
                :join? false}))
