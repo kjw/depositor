@@ -30,8 +30,8 @@
 
   :plugins [[lein-cljsbuild "1.0.3"]
             [org.danielsz/lein-runit "0.1.0-SNAPSHOT"]
-            [lein-environ "1.0.0"]
-            [com.cemerick/austin "0.1.5"]]
+            [lein-environ "1.0.0"]]
+            ;[com.cemerick/austin "0.1.5"]]
 
   :main depositor.server
 
