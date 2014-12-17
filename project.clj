@@ -12,6 +12,7 @@
                  [org.clojure/core.cache "0.6.4"]
                  [org.clojure/data.json "0.2.5"]
                  [org.clojure/data.xml "0.0.8"]
+                 [crossref/heartbeat "0.1.1"]
                  ;[com.congitect/transit-clj "0.8.259"]
                  [com.cognitect/transit-cljs "0.8.188"]
                  [com.taoensso/sente "1.2.0"]

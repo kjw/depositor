@@ -4,6 +4,7 @@
   (:require [compojure.core :refer [GET POST defroutes routes context]]
             [compojure.route :refer [resources]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
+            [heartbeat.ring :refer [wrap-heartbeat]]
             [compojure.handler :refer [site]]
             [org.httpkit.server :refer [run-server]]
             [environ.core :refer [env]]
@@ -33,7 +34,8 @@
       (authenticate {:credential-fn crossref-credentials
                      :workflows [(interactive-form :login-uri "/login"
                                                    :redirect-on-auth? false)]})
-      (wrap-defaults site-defaults)))
+      (wrap-defaults site-defaults)
+      (wrap-heartbeat)))
 
 (defn start []
   (event/start)
@@ -54,3 +56,4 @@
                :thread (env-int :server-threads)
                :queue-size (env-int :server-queue-size)
                :join? false}))
+

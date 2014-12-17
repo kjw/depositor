@@ -45,7 +45,7 @@
 (defn crossref-credentials [{:keys [username password]}]
   (let [pid (str username ":" password)
         params {:rtype "prefixes" :pid pid}
-        request @(hc/get "http://doi.crossref.org/info" {:query-params params})]
+        request @(hc/get "https://doi.crossref.org/info" {:query-params params})]
     (when (-> request :status (= 200))
       (let [prefixes (-> request 
                          :body 
