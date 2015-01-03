@@ -1,29 +1,16 @@
 (ns depositor.auth
-  (:require [org.httpkit.client :as hc]
+  (:require [depositor.path :refer [path-to]]
+            [org.httpkit.client :as hc]
             [clojure.data.json :as json]
             [clojure.string :as string]
             [compojure.core :refer [GET ANY defroutes]]
             [cemerick.friend :refer [logout]]
             [ring.util.response :refer [redirect]]
+            [ring.util.anti-forgery :refer [anti-forgery-field]]
             [hiccup.core :refer [html]]
             [hiccup.form :refer [hidden-field]]))
 
-(def ^:dynamic *anti-forgery-token* nil)
-
-(defn- login-page [req]
-  (html
-   [:h2 "Login"]
-   (when (get-in req [:params :login_failed])
-     [:p "Credentials do not match."])
-   [:form {:action "/login" :method "POST"}
-    (hidden-field 
-     "__anti-forgery-token"
-     (get-in req [:session 
-                  :ring.middleware.anti-forgery/anti-forgery-token]))
-    [:input {:type "text" :name "username" 
-             :value (get-in req [:params :username])}]
-    [:input {:type "text" :name "password"}]
-    [:input {:type "submit" :name "submit" :value "submit"}]]))
+;(def ^:dynamic *anti-forgery-token* nil)
 
 ;; todo rows, repeat on fail
 (defn- prefixes->members 
@@ -43,8 +30,7 @@
         (map #(hash-map :id (:id %) :name (:primary-name %)) members)))))
 
 (defn crossref-credentials [{:keys [username password]}]
-  (let [pid (str username ":" password)
-        params {:rtype "prefixes" :pid pid}
+  (let [params {:rtype "prefixes" :usr username :pwd password}
         request @(hc/get "https://doi.crossref.org/info" {:query-params params})]
     (when (-> request :status (= 200))
       (let [prefixes (-> request 
@@ -57,6 +43,6 @@
          :roles (set (conj prefixes :user))}))))
 
 (defroutes authorization-routes
-  (logout (ANY "/logout" [] (redirect "/login"))))
+  (logout (ANY "/logout" [] (redirect (path-to "login")))))
 
 

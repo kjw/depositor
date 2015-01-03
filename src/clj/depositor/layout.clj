@@ -1,6 +1,7 @@
 (ns depositor.layout
   "Define various bits of a page layout."
   (:require [hiccup.core :refer [html]]
+            [depositor.path :refer [path-to img]]
             [depositor.page :refer [page]]))
 
 (defn authentication [req]
@@ -52,7 +53,7 @@
      "&nbsp;"
      [:span.small.glyphicon.glyphicon-chevron-down]]
     [:ul.dropdown-menu
-     [:li [:a {:href "/logout"} "Sign out"]]]]])
+     [:li [:a {:href (path-to "logout")} "Sign out"]]]]])
 
 (defn- header [req]
   [:div.navbar.navbar-inverse {:role "navigation"}
@@ -66,7 +67,7 @@
       [:span.icon-bar]]
      [:a.navbar-brand {:href "#"}
       [:span
-       [:img {:src "/img/logo.png" :style "width:160px;margin-top:-6px;"}]
+       [:img {:src (img "logo.png") :style "width:160px;margin-top:-6px;"}]
        [:span {:style "font-size: .9em;"} "&nbsp;Linking Console"]]]]
     [:div.collapse.navbar-collapse
      (header-links req)
@@ -77,24 +78,24 @@
    [:div.sidebar-block
     [:h4 "Deposits"]
     [:ul.list-unstyled
-     [:li [:a {:href "/deposits/all"}
+     [:li [:a {:href (path-to "deposits" "all")}
            [:h5 [:span.glyphicon.glyphicon-th.link-icon] "All"]]]
-     [:li [:a {:href "/deposits/incomplete"}
+     [:li [:a {:href (path-to "deposits" "incomplete")}
            [:h5 [:span.glyphicon.glyphicon-repeat.link-icon] "In progress"]]]
-     [:li [:a {:href "/deposits/finished"}
+     [:li [:a {:href (path-to "deposits" "finished")}
            [:h5 [:span.glyphicon.glyphicon-ok-circle.link-icon] "Finished"]]]
-     [:li [:a {:href "/deposits/failed"}
+     [:li [:a {:href (path-to "deposits" "failed")}
            [:h5 [:span.glyphicon.glyphicon-remove-circle.link-icon] "Failed"]]]]]
    [:div.sidebar-block
     [:h4 "Member"]
     [:ul.list-unstyled
-     [:li [:a {:href "/statistics"} 
+     [:li [:a {:href (path-to "statistics")} 
            [:h5 [:span.glyphicon.glyphicon-stats.link-icon] "Statistics"]]]]]
    [:div.sidebar-block
     [:h4 "Account"]
     [:p.small "Signed in as " [:b (identity-name req :friendly false)]]
     [:ul.list-unstyled
-     [:li [:a {:href "/permissions"}
+     [:li [:a {:href (path-to "permissions")}
            [:h5 [:span.glyphicon.glyphicon-tower.link-icon] "Permissions"]]]]]])
 
 (defn- sidebar-layout [req contents]

@@ -43,14 +43,14 @@
                          :server-queue-size 1000
                          :browser-repl true
                          :api "https://api.crossref.org"
-                         :main-js "/js/main.dev.js"}}
+                         :main-js "main.dev.js"}}
 
              :production {:env {:server-port 3000
                                 :server-threads 100
                                 :server-queue-size 40000
                                 :browser-repl false
                                 :api "https://api.crossref.org"
-                                :main-js "/js/main.js"}}}
+                                :main-js "main.js"}}}
 
   :cljsbuild {:builds {:production
                        {:source-paths ["src/cljs" "src/cljx"]

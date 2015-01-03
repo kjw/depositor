@@ -17,7 +17,7 @@
     (start-event-sender!)))
 
 (let [{:keys [chsk ch-recv send-fn state]} 
-        (sente/make-channel-socket! "/socket" {:type :auto})]
+        (sente/make-channel-socket! "/console/socket" {:type :auto})]
   (def chsk       chsk)
   (def ch-chsk    ch-recv)
   (def chsk-send! send-fn)

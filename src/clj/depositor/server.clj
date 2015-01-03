@@ -10,6 +10,8 @@
             [environ.core :refer [env]]
             [cemerick.friend :refer [wrap-authorize authenticate]]
             [cemerick.friend.workflows :refer [interactive-form]]
+            [depositor.resource :refer [wrap-resource]]
+            [depositor.path :refer [path-to]]
             [depositor.auth :refer [crossref-credentials authorization-routes]]
             [depositor.landing :refer [landing-routes]]
             [depositor.stats :refer [stats-routes]]
@@ -25,17 +27,18 @@
 
 (def all-routes
   (-> (routes
-       (context "/socket" [] (wrap-authorize socket-routes #{:user}))
-       (context "/deposits" [] (wrap-authorize deposit-routes #{:user}))
-       (context "/permissions" [] (wrap-authorize permission-routes #{:user}))
-       (context "/statistics" [] (wrap-authorize stats-routes #{:user}))
-       authorization-routes
-       landing-routes)
+       (context (path-to "socket") [] (wrap-authorize socket-routes #{:user}))
+       (context (path-to "deposits") [] (wrap-authorize deposit-routes #{:user}))
+       (context (path-to "permissions") [] (wrap-authorize permission-routes #{:user}))
+       (context (path-to "statistics") [] (wrap-authorize stats-routes #{:user}))
+       (context (path-to) [] authorization-routes)
+       (context (path-to) [] landing-routes))
       (authenticate {:credential-fn crossref-credentials
-                     :workflows [(interactive-form :login-uri "/login"
+                     :workflows [(interactive-form :login-uri (path-to "login")
                                                    :redirect-on-auth? false)]})
-      (wrap-defaults site-defaults)
-      (wrap-heartbeat)))
+      (wrap-defaults (merge site-defaults {:static {:resource false}}))
+      (wrap-resource "/public" (path-to))
+      wrap-heartbeat))
 
 (defn start []
   (event/start)
