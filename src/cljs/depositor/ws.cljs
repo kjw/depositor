@@ -1,6 +1,7 @@
 (ns depositor.ws
   (:require-macros [cljs.core.async.macros :refer (go go-loop)])
-  (:require [cljs.core.async :refer (<! >! put! chan)]
+  (:require [depositor.path :refer [path-to]]
+            [cljs.core.async :refer (<! >! put! chan)]
             [taoensso.sente  :as sente :refer (cb-success?)]
             [om.core :as om]
             [cognitect.transit :as t]))
@@ -17,7 +18,7 @@
     (start-event-sender!)))
 
 (let [{:keys [chsk ch-recv send-fn state]} 
-        (sente/make-channel-socket! "/console/socket" {:type :auto})]
+        (sente/make-channel-socket! (path-to "socket") {:type :auto})]
   (def chsk       chsk)
   (def ch-chsk    ch-recv)
   (def chsk-send! send-fn)

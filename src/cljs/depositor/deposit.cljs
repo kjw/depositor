@@ -5,6 +5,7 @@
             [om.core :as om]
             [cljs.core.async :refer (<! >! put! chan sliding-buffer close!)]
             [taoensso.sente :refer (cb-success?)]
+            [depositor.path :refer [path-to]]
             [depositor.util :as util]
             [depositor.notify :as notify]
             [depositor.ws :as ws :refer [send-and-update!]]))
@@ -235,7 +236,7 @@
     (dom/div
      {:class "col-sm-10" :style {:margin-top "8px"}}
      (dom/a
-      {:href (str "/deposits/" (:batch-id deposit))}
+      {:href (path-to "deposits" (:batch-id deposit))}
       (:batch-id deposit))))
    (when (:filename deposit)
      (dom/div
@@ -337,7 +338,7 @@
    (for [child (:children deposit)]
      (dom/tr
       (dom/td (deposit-status-small child))
-      (dom/td (dom/a {:href (str "/deposits/" (:batch-id child))} (:batch-id child)))
+      (dom/td (dom/a {:href (path-to "deposits" (:batch-id child))} (:batch-id child)))
       (dom/td (-> child :dois first))
       (dom/td (-> child :submitted-at util/friendly-date)))))))
 
@@ -464,7 +465,7 @@
 (defcomponent deposit-item [deposit owner]
   (render-state [_ {:keys [open-chan]}]
                 (dom/tr
-                 {:on-click #(set! (.-location js/window) (str "/deposits/" (:batch-id deposit)))}
+                 {:on-click #(set! (.-location js/window) (path-to "deposits" (:batch-id deposit)))}
                  (dom/td
                   (dom/div
                    {:class "row"}

@@ -9,7 +9,7 @@
             [hickory.select :as hs]
             [hickory.zip :as hz]
             [environ.core :refer [env]]
-            [depositor.path :refer [javascript css]]))
+            [depositor.path :refer [site-prefix javascript css]]))
 
 (def modernizer "modernizr-2.6.2-respond-1.1.0.min.js")
 (def jquery "jquery-1.11.1.min.js")
@@ -45,6 +45,10 @@
   (snippet
    (str "<link rel=\"stylesheet\" href=\"" (css name) "\">")))
 
+(defn context-element []
+  (snippet
+   (str "<div id=\"context\" class=\"" site-prefix "\"></div>")))
+
 (defn original-page []
   (-> "index.html"
       io/resource
@@ -56,10 +60,13 @@
   (->> (original-page)
        hz/hickory-zip
        (hs/select-next-loc (hs/tag :body))
+
+       (#(zip/append-child % (context-element)))
+       
        (#(zip/append-child % (-> content hc/parse-fragment first hc/as-hickory)))
        
-       ;hs/root
-       ;(hs/select-next-loc (hs/tag :head))
+       ;;hs/root
+       ;;(hs/select-next-loc (hs/tag :head))
        (#(zip/append-child % (local-css bootstrap-css)))
        (#(zip/append-child % (local-css main-css)))
        (#(zip/append-child % (local-js-script modernizer)))
