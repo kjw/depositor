@@ -3,11 +3,12 @@
             [org.httpkit.client :as hc]
             [clojure.data.json :as json]
             [compojure.core :refer [GET defroutes]]
+            [environ.core :refer [env]]
             [depositor.event :refer [handle-socket-event]]
             [depositor.layout :refer [page-with-sidebar identity-members]]))
 
 (defn get-member-status [id]
-  (let [response (-> (hc/get (str "http://api.crossref.org/v1/members/" id))
+  (let [response (-> (hc/get (str (env :api) "/v1/members/" id))
                      deref)]
     (when (-> response :status (= 200))
       (-> response
@@ -17,7 +18,7 @@
 
 (defn get-license-breakdown [id]
   (let [qp {:facet "license:10" :rows 0 :filter (str "member:" id)}
-        response (-> "http://api.crossref.org/v1/works"
+        response (-> (str (env :api) "/v1/works")
                      (hc/get {:query-params qp})
                      deref)]
     (when (-> response :status (= 200))
@@ -30,7 +31,7 @@
 
 (defn get-funding-breakdown [id]
   (let [qp {:facet "funder-name:10" :rows 0 :filter (str "member:" id)}
-        response (-> "http://api.crossref.org/v1/works"
+        response (-> (str (env :api) "/v1/works")
                      (hc/get {:query-params qp})
                      deref)]
     (when (-> response :status (= 200))

@@ -7,6 +7,7 @@
             [cemerick.friend :refer [logout]]
             [ring.util.response :refer [redirect]]
             [ring.util.anti-forgery :refer [anti-forgery-field]]
+            [environ.core :refer [env]]
             [hiccup.core :refer [html]]
             [hiccup.form :refer [hidden-field]]))
 
@@ -20,7 +21,7 @@
                            (map #(str "prefix:" %))
                            (string/join ","))
         params {:filter member-filter :rows 10000}
-        request @(hc/get "http://api.crossref.org/v1/members" 
+        request @(hc/get (str (env :api) "/v1/members")
                          {:query-params params})]
     (when (-> request :status (= 200))
       (let [members (-> request

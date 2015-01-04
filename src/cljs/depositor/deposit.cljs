@@ -769,8 +769,7 @@
            {:type "button" :class "btn btn-success" :disabled true}
            {:type "button" :class "btn btn-success" :data-dismiss "modal"
             :on-click #(put! generate-chan
-                             {:test true
-                              :doi (get-in @app [:lookup :text])
+                             {:doi (get-in @app [:lookup :text])
                               :parent (get-in @app [:deposit :batch-id])
                               :citations (-> @app
                                              (get-in [:deposit :citations])

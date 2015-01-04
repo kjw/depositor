@@ -13,6 +13,8 @@
             [clj-time.coerce :as tco]
             [depositor.layout :refer [identity-credentials page-with-sidebar]]))
 
+(def test-deposits (= "true" (env :test-deposits)))
+
 (def deposit-submit-time-format
   (tf/formatter "EEE MMM dd HH:mm:ss ZZZ yyyy"))
 
@@ -88,11 +90,12 @@
       (prepare-deposit creds :expand expand)))
 
 (defn put-deposit [{:keys [username password] :as creds}
-                   {:keys [url filename content-type]}]
+                   {:keys [url filename content-type test] :or {test test-deposits}}]
   (let [{:keys [headers status body error]}
         (-> (str (env :api) "/v1/deposits")
             (hc/post {:basic-auth [username password]
                       :query-params {:url url
+                                     :test test
                                      :filename filename}
                       :headers {"Content-Type" content-type}})
             deref)]
@@ -127,7 +130,7 @@
 ;; so for now we manually follow the redirect.
 
 (defn generate-deposit [{:keys [username password] :as creds}
-                        {:keys [parent test doi citations] :or [test true]}]
+                        {:keys [parent test doi citations] :or {test test-deposits}}]
   (let [{:keys [headers status]}
         (-> (str (env :api) "/v1/deposits")
             (hc/post {:basic-auth [username password]
