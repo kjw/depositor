@@ -43,6 +43,7 @@
                          :server-queue-size 1000
                          :browser-repl true
                          :api "https://api.crossref.org"
+                         :auth "https://doi.crossref.org/info"
                          :main-js "main.dev.js"}}
 
              :production {:env {:server-port 3000
@@ -50,6 +51,7 @@
                                 :server-queue-size 40000
                                 :browser-repl false
                                 :api "https://api.crossref.org"
+                                :auth "http://svc1.crossref.org:8080/info"
                                 :main-js "main.js"}}}
 
   :cljsbuild {:builds {:production

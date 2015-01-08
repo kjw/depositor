@@ -51,4 +51,5 @@ The CrossRef Linking Console.
 - TEST_DEPOSITS
 - BROWSER_REPL
 - API
+- AUTH
 - MAIN_JS
