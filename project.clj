@@ -51,7 +51,7 @@
                                 :server-queue-size 40000
                                 :browser-repl false
                                 :api "https://api.crossref.org"
-                                :auth "http://svc1.crossref.org:8080/info"
+                                :auth "https://doi.crossref.org/info"
                                 :main-js "main.js"}}}
 
   :cljsbuild {:builds {:production
