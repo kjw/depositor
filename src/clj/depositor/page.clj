@@ -15,7 +15,7 @@
 (def jquery "jquery-1.11.1.min.js")
 (def bootstrap "bootstrap.min.js")
 
-(def react "//fb.me/react-0.9.0.js")
+(def react "//cdnjs.cloudflare.com/ajax/libs/react/0.9.0/react.js")
 (def filepicker "//api.filepicker.io/v1/filepicker.js")
 
 (def bootstrap-css "bootstrap.min.css")
