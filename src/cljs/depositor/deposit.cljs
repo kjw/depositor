@@ -638,9 +638,13 @@
     {:class "lead"}
     "Upload CrossRef XML to register or update DOI metadata. The XML "
     " should conform to either the "
-    (dom/a {:href ""} "full deposit")
+    (dom/a {:target "_blank"
+            :href "http://doi.crossref.org/schemas/crossref4.3.4.xsd"}
+           "full deposit")
     " schema or the "
-    (dom/a {:href ""} "resource deposit")
+    (dom/a {:target "_blank"
+            :href "http://doi.crossref.org/schemas/doi_resources4.3.2.xsd"}
+           "resource deposit")
     " schema.")
    (dom/button
     {:type "button"
