@@ -658,6 +658,21 @@
     (util/icon :upload)
     " Upload XML")))
 
+(defn deposit-form-upload [app]
+  (dom/div
+   {:style {:margin-top "50px"}}
+   (dom/span
+    {:class "lead"}
+    "Use the CrossRef Deposit Form to register DOIs and enter metadata"
+    " via a web form.")
+   (dom/a
+    {:target "_black"
+     :style {:margin-top "40px" :color "white"}
+     :class "btn btn-block btn-success btn-lg"
+     :href "http://www.crossref.org/webDeposit"}
+    (util/icon :new-window)
+    " Web Deposit Form")))
+
 (defn upload-modal [app]
   (dom/div
    {:class "modal fade"
@@ -686,7 +701,10 @@
          :content (pdf-upload app)}
         {:name :xml
          :label "CrossRef XML"
-         :content (xml-upload app)}]))
+         :content (xml-upload app)}
+        {:name :form
+         :label "Deposit Form"
+         :content (deposit-form-upload app)}]))
      (dom/div
       {:class "modal-footer"}
       (dom/button {:type "button"
