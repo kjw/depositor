@@ -20,7 +20,7 @@
   (let [member-filter (->> prefixes 
                            (map #(str "prefix:" %))
                            (string/join ","))
-        params {:filter member-filter :rows 10000}
+        params {:filter member-filter :rows 1000}
         request @(hc/get (str (env :api) "/v1/members")
                          {:query-params params})]
     (when (-> request :status (= 200))
