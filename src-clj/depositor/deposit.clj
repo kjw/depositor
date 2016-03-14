@@ -26,7 +26,7 @@
   (update-in
    deposit
    [:submitted-at]
-   #(let [no-cest-bst (string/replace % #"CEST|BST" "EET")]
+   #(let [no-cest-bst (string/replace % #"CEST|BST|EDT" "EET")]
       (->> no-cest-bst (tf/parse deposit-submit-time-format) tco/to-long))))
 
 (defn expand-children [credentials deposit]
