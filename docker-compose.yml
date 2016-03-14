@@ -1,0 +1,8 @@
+web:
+  build: .
+  command: lein with-profile +production run
+  ports:
+    - 80:3000
+  environment:
+    - SERVER_PORT=3000
+    - SERVER_PATH=/

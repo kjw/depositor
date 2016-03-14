@@ -16,31 +16,16 @@ The CrossRef Linking Console.
 
     M-x cider-connect
 
-## Production Deployment
+## Test Production via Docker / Convox
 
-1) Install system dependencies (first time only):
+    convox start
+	
+Then open up a browser to http://`your docker machine IP` .
 
-  - Java 7
-  - runit
-  - Leiningen
+## Production via Docker / Convox
 
-2) Compile the Javascript for production:
-
-    lein cljsbuild once production
-
-3) Generate an uber jar (for runit to run):
-
-    lein uberjar
-
-4) Prepare the project for runit:
-
-    lein with-profile +production runit
-    cd target
-	./commit.sh
-
-5) Restart or start the server:
-
-    sv restart depositor
+    convox apps create depositor
+	convox deploy
 
 ## Configuration Environment Variables
 
