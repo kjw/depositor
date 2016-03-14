@@ -43,8 +43,8 @@
                          :main-js "main.dev.js"}}
 
              :production {:env {:server-port 3000
-                                :server-threads 100
-                                :server-queue-size 40000
+                                :server-threads 10
+                                :server-queue-size 1000 
                                 :browser-repl false
                                 :api "https://api.crossref.org"
                                 :auth "https://doi.crossref.org/info"
