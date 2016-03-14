@@ -4,11 +4,11 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :source-paths ["src/clj" "src/cljs" "src/cljx"]
+  :source-paths ["src-clj"]
 
-  :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/clojurescript "0.0-2356"]
-                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
+  :dependencies [[org.clojure/clojure "1.7.0"]
+                 [org.clojure/clojurescript "1.7.228"]
+                 [org.clojure/core.async "0.2.374"]
                  [org.clojure/core.cache "0.6.4"]
                  [org.clojure/data.json "0.2.5"]
                  [org.clojure/data.xml "0.0.8"]
@@ -18,25 +18,21 @@
                  [com.taoensso/sente "1.2.0"]
                  [com.cemerick/friend "0.2.1"]
                  [ring/ring-defaults "0.1.2"]
-                 [compojure "1.2.0"]
+                 [compojure "1.5.0"]
                  [http-kit "2.1.19"]
-                 [om "0.7.3"]
-                 [prismatic/om-tools "0.3.2"]
+                 [org.om/om "0.8.1"]
+                 [prismatic/om-tools "0.3.12"]
                  [hickory "0.5.4"]
                  [environ "1.0.0"]
                  [hiccup "1.0.5"]
-                 [com.andrewmcveigh/cljs-time "0.2.1"]
-                 [clj-time "0.8.0"]
+                 [com.andrewmcveigh/cljs-time "0.4.0"]
+                 [clj-time "0.11.0"]
                  [javax.servlet/servlet-api "2.5"]]
 
-  :plugins [[lein-cljsbuild "1.0.3"]
-            [org.danielsz/lein-runit "0.1.0-SNAPSHOT"]
+  :plugins [[lein-cljsbuild "1.1.3"]
             [lein-environ "1.0.0"]]
-            ;[com.cemerick/austin "0.1.5"]]
 
   :main depositor.server
-
-  :runit {:app-root "/opt" :service-root "/etc/sv"}
 
   :profiles {:dev {:env {:server-port 3000
                          :server-threads 2
@@ -55,17 +51,17 @@
                                 :main-js "main.js"}}}
 
   :cljsbuild {:builds {:production
-                       {:source-paths ["src/cljs" "src/cljx"]
-                        :compiler {:output-to "resources/public/js/main.js"}
-                        :optimizations :advanced
-                        :pretty-print false}
+                       {:source-paths ["src-cljs"]
+                        :compiler {:output-to "resources/public/js/main.js"
+                                   :optimizations :whitespace
+                                   :pretty-print false}}
                         ;:preamble ["resources/jquery-1.11.1.min.js"
                         ;           "resources/bootstrap.min.js"]}
                        :dev
-                       {:source-paths ["src/cljs" "src/cljx"]
-                        :compiler {:output-to "resources/public/js/main.dev.js"}
-                        :optimizations :whitespace
-                        :pretty-print true}}})
+                       {:source-paths ["src-cljs"]
+                        :compiler {:output-to "resources/public/js/main.dev.js"
+                                   :optimizations :whitespace
+                                   :pretty-print true}}}})
                         ;:preamble ["resources/jquery-1.11.1.min.js"
                         ;           "resources/bootstrap.min.js"]}}})
             

@@ -2,7 +2,6 @@
   "Generates the index page either with or without a browser repl
    connection."
   (:require [clojure.java.io :as io]
-            [cemerick.austin.repls :refer [browser-connected-repl-js]]
             [clojure.zip :as zip]
             [hickory.core :as hc]
             [hickory.render :as hr]
@@ -15,19 +14,13 @@
 (def jquery "jquery-1.11.1.min.js")
 (def bootstrap "bootstrap.min.js")
 
-(def react "//cdnjs.cloudflare.com/ajax/libs/react/0.9.0/react.js")
+(def react "//cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react.js")
 (def filepicker "//api.filepicker.io/v1/filepicker.js")
 
 (def bootstrap-css "bootstrap.min.css")
 (def main-css "main.css")
 
 (defn snippet [s] (-> s hc/parse-fragment first hc/as-hickory))
-
-(defn repl-js-script []
-  (snippet
-   (str "<script>"
-        (if (env :browser-repl) (browser-connected-repl-js) "")
-        "</script>")))
 
 (defn main-js-script []
   (snippet
@@ -76,7 +69,6 @@
        (#(zip/append-child % (remote-js-script filepicker)))
 
        (#(zip/append-child % (main-js-script)))
-       (#(zip/append-child % (repl-js-script)))
        zip/root
        hr/hickory-to-html))
 
