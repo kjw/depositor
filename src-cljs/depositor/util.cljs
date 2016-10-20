@@ -118,5 +118,6 @@
 
 (defn friendly-date [n]
   (let [fmt (tf/formatter "dth MMMM, HH:mm")]
-    (tf/unparse fmt (tc/from-long n))))
+    (when n
+      (tf/unparse fmt (tc/from-long n)))))
 

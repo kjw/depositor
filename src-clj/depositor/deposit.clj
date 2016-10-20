@@ -81,13 +81,15 @@
 
 (defn get-deposit [{:keys [username password] :as creds} id
                    & {:keys [expand] :or {expand true}}]
-  (-> (str (env :api) "/v1/deposits/" id)
-      (hc/get {:basic-auth [username password]})
-      deref
-      :body
-      (json/read-str :key-fn keyword)
-      :message
-      (prepare-deposit creds :expand expand)))
+  (try
+    (-> (str (env :api) "/v1/deposits/" id)
+        (hc/get {:basic-auth [username password]})
+        deref
+        :body
+        (json/read-str :key-fn keyword)
+        :message
+        (prepare-deposit creds :expand expand))
+    (catch Exception e nil)))
 
 (defn put-deposit [{:keys [username password] :as creds}
                    {:keys [url filename content-type test] :or {test test-deposits}}]
